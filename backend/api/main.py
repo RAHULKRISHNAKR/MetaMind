@@ -8,6 +8,7 @@ import os
 import uuid
 import time
 import threading
+from pathlib import Path
 from typing import List, Optional, Dict, Any
 from fastapi import FastAPI, HTTPException, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
@@ -97,6 +98,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include code editor router
+from .code_editor_endpoints import router as code_editor_router
+app.include_router(code_editor_router)
 
 # Initialize components
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -545,6 +550,192 @@ async def compare_versions(run_id: str, v1: int, v2: int):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to compare versions: {str(e)}")
+
+# ============================================================================
+# CODE GENERATION ENDPOINTS
+# ============================================================================
+
+class CodeGenerationRequest(BaseModel):
+    """Request model for code generation."""
+    project_name: str = Field(..., description="Name of the project to generate")
+
+
+class CodeGenerationResponse(BaseModel):
+    """Response model for code generation."""
+    status: str
+    project_path: str
+    files_generated: List[str]
+    architecture_type: str
+    message: str
+    download_url: Optional[str] = None
+
+
+class CodeFileResponse(BaseModel):
+    """Response model for code file listing."""
+    files: List[Dict[str, Any]]
+    total_files: int
+
+
+# Store for generated projects (in production, use persistent storage)
+generated_projects: Dict[str, Dict[str, Any]] = {}
+
+
+@app.post("/api/design/{run_id}/generate-code", response_model=CodeGenerationResponse)
+async def generate_code(run_id: str, request: CodeGenerationRequest, background_tasks: BackgroundTasks):
+    """
+    Generate production-ready code from architecture blueprint.
+    
+    This endpoint:
+    1. Retrieves the architecture blueprint for the run
+    2. Generates complete project files using templates
+    3. Creates a downloadable ZIP archive
+    4. Returns file listing and download link
+    """
+    try:
+        from ..agents.code_generator_agent import CodeGeneratorAgent
+        
+        # Get the architecture blueprint
+        if run_id in active_designs:
+            design_status = active_designs[run_id]
+            if design_status["status"] != "completed":
+                raise HTTPException(status_code=400, detail="Design must be completed before generating code")
+            
+            result = design_status["result"]
+            architecture_blueprint = result.get("selected_architecture", {})
+        else:
+            # Get from database
+            run = versioning_agent.get_run(run_id)
+            if not run:
+                raise HTTPException(status_code=404, detail="Run not found")
+            
+            versions = versioning_agent.get_architecture_versions(run_id)
+            if not versions:
+                raise HTTPException(status_code=404, detail="No versions found")
+            
+            final_version = versions[-1]
+            import json
+            architecture_blueprint = json.loads(final_version["architecture_json"])
+        
+        # Generate code
+        generator = CodeGeneratorAgent()
+        generation_result = generator.generate_code(
+            architecture_blueprint=architecture_blueprint,
+            project_name=request.project_name
+        )
+        
+        if generation_result["status"] == "error":
+            raise HTTPException(status_code=500, detail=generation_result["message"])
+        
+        # Create ZIP archive
+        project_path = Path(generation_result["project_path"])
+        zip_path = generator.create_zip_archive(project_path)
+        
+        # Store project info
+        project_id = f"{run_id}_{request.project_name.lower().replace(' ', '_')}"
+        generated_projects[project_id] = {
+            "run_id": run_id,
+            "project_name": request.project_name,
+            "project_path": str(project_path),
+            "zip_path": str(zip_path),
+            "files_generated": generation_result["files_generated"],
+            "architecture_type": generation_result["architecture_type"],
+            "timestamp": time.time()
+        }
+        
+        return CodeGenerationResponse(
+            status="success",
+            project_path=str(project_path),
+            files_generated=generation_result["files_generated"],
+            architecture_type=generation_result["architecture_type"],
+            message=generation_result["message"],
+            download_url=f"/api/design/{run_id}/download/{project_id}"
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Code generation failed: {str(e)}")
+
+
+@app.get("/api/design/{run_id}/code-files/{project_id}", response_model=CodeFileResponse)
+async def get_code_files(run_id: str, project_id: str):
+    """
+    Get list of generated code files with content preview.
+    
+    Returns file tree structure with file sizes and preview content.
+    """
+    try:
+        if project_id not in generated_projects:
+            raise HTTPException(status_code=404, detail="Generated project not found")
+        
+        project_info = generated_projects[project_id]
+        project_path = Path(project_info["project_path"])
+        
+        if not project_path.exists():
+            raise HTTPException(status_code=404, detail="Project directory not found")
+        
+        # Build file tree
+        files = []
+        for file_path in project_path.rglob('*'):
+            if file_path.is_file():
+                relative_path = file_path.relative_to(project_path)
+                
+                # Read file content (limit to 500 chars for preview)
+                try:
+                    content = file_path.read_text()
+                    preview = content[:500] + "..." if len(content) > 500 else content
+                except:
+                    preview = "[Binary file]"
+                
+                files.append({
+                    "path": str(relative_path),
+                    "size": file_path.stat().st_size,
+                    "preview": preview,
+                    "full_content": content if len(content) < 10000 else None  # Only include full content for small files
+                })
+        
+        return CodeFileResponse(
+            files=files,
+            total_files=len(files)
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get code files: {str(e)}")
+
+
+@app.get("/api/design/{run_id}/download/{project_id}")
+async def download_project(run_id: str, project_id: str):
+    """
+    Download generated project as ZIP archive.
+    
+    Returns the ZIP file for download.
+    """
+    try:
+        from fastapi.responses import FileResponse
+        
+        if project_id not in generated_projects:
+            raise HTTPException(status_code=404, detail="Generated project not found")
+        
+        project_info = generated_projects[project_id]
+        zip_path = Path(project_info["zip_path"])
+        
+        if not zip_path.exists():
+            raise HTTPException(status_code=404, detail="ZIP file not found")
+        
+        return FileResponse(
+            path=str(zip_path),
+            media_type="application/zip",
+            filename=f"{project_info['project_name'].replace(' ', '_')}.zip"
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to download project: {str(e)}")
+
+
 
 
 @app.get("/api/design/{run_id}/specification")

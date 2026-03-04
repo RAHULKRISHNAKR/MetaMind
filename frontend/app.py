@@ -401,6 +401,18 @@ def show_new_design_page():
     """Show the new design creation page."""
     st.header("Create New AI Architecture Design")
     
+    # Add "Start New Design" button if there's an existing result
+    if st.session_state.get("design_result"):
+        if st.button("🆕 Start New Design", type="secondary"):
+            # Clear all session state
+            st.session_state.design_result = None
+            st.session_state.code_generated = False
+            st.session_state.gen_result = None
+            st.session_state.project_id = None
+            st.session_state.current_run_id = None
+            st.session_state.show_progress = False
+            st.rerun()
+    
     with st.form("design_form"):
         st.subheader("System Requirements")
         
@@ -516,6 +528,10 @@ def show_new_design_page():
     # Show progress if a design is running
     if st.session_state.get("show_progress") and st.session_state.get("current_run_id"):
         show_design_progress(st.session_state.current_run_id)
+    
+    # Show design result if it exists (persists across reruns)
+    elif st.session_state.get("design_result"):
+        show_design_result(st.session_state.design_result)
 
 
 def show_design_progress(run_id: str):
@@ -558,6 +574,8 @@ def show_design_progress(run_id: str):
         st.success("✅ Design completed!")
         result = get_design_result(run_id)
         if result:
+            # Store result in session state so it persists across reruns
+            st.session_state.design_result = result
             show_design_result(result)
         st.session_state.show_progress = False
         
@@ -824,7 +842,138 @@ def show_design_result(result: Dict[str, Any]):
                     mime="application/json"
                 )
         except Exception as e:
-            st.error(f"Failed to download specification: {str(e)}")
+            st.error(f"Error downloading specification: {str(e)}")
+    
+    # Code Generation Section
+    st.subheader("🚀 Generate Production Code")
+    st.markdown("""
+    Transform your architecture design into production-ready code with a single click!
+    
+    **What you'll get:**
+    - ✅ Complete FastAPI application
+    - ✅ Docker & Docker Compose configs
+    - ✅ Requirements.txt with all dependencies
+    - ✅ Comprehensive README with setup instructions
+    - ✅ Environment configuration templates
+    - ✅ Ready to deploy!
+    """)
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        project_name = st.text_input(
+            "Project Name",
+            value=f"my_ai_pipeline",
+            help="Name for your generated project"
+        )
+    
+    with col2:
+        st.write("")  # Spacing
+        st.write("")  # Spacing
+        generate_button = st.button("🚀 Generate Code", type="primary", use_container_width=True)
+    
+    # Initialize session state for code generation
+    if 'code_generated' not in st.session_state:
+        st.session_state.code_generated = False
+        st.session_state.gen_result = None
+        st.session_state.project_id = None
+    
+    if generate_button:
+        if not project_name or not project_name.strip():
+            st.error("Please enter a project name")
+        else:
+            with st.spinner("🔨 Generating production-ready code..."):
+                try:
+                    # Call code generation API
+                    response = requests.post(
+                        f"{API_BASE_URL}/api/design/{result['run_id']}/generate-code",
+                        json={"project_name": project_name}
+                    )
+                    
+                    if response.status_code == 200:
+                        gen_result = response.json()
+                        
+                        # Store in session state
+                        st.session_state.code_generated = True
+                        st.session_state.gen_result = gen_result
+                        st.session_state.project_id = f"{result['run_id']}_{project_name.lower().replace(' ', '_')}"
+                        
+                        # Force rerun to show the persisted section
+                        st.rerun()
+                    else:
+                        error_detail = response.json().get("detail", "Unknown error")
+                        st.error(f"❌ Code generation failed: {error_detail}")
+                        st.error(f"Status code: {response.status_code}")
+                
+                except requests.exceptions.ConnectionError:
+                    st.error("❌ Cannot connect to backend API. Please ensure the backend is running.")
+                    st.error(f"Trying to connect to: {API_BASE_URL}")
+                except Exception as e:
+                    st.error(f"❌ Code generation failed: {str(e)}")
+                    import traceback
+                    st.error(f"Traceback: {traceback.format_exc()}")
+    
+    # Display generated code section if code was generated (persists across reruns)
+    if st.session_state.code_generated and st.session_state.gen_result:
+        gen_result = st.session_state.gen_result
+        project_id = st.session_state.project_id
+        
+        # Show generation details (if not already shown above)
+        if not generate_button:
+            st.success(f"✅ {gen_result['message']}")
+            
+            # Show generation details
+            st.info(f"**Architecture Type:** {gen_result['architecture_type']}")
+            st.info(f"**Files Generated:** {len(gen_result['files_generated'])}")
+            
+            # Show file list
+            with st.expander("📁 Generated Files", expanded=True):
+                for file in gen_result['files_generated']:
+                    st.write(f"✓ {file}")
+            
+            # Download button
+            if gen_result.get('download_url'):
+                st.markdown("---")
+                download_url = f"{API_BASE_URL}{gen_result['download_url']}"
+                
+                st.markdown(f"""
+                ### 📦 Download Your Project
+                
+                Your project is ready! Click below to download the complete ZIP archive.
+                
+                <a href="{download_url}" target="_blank">
+                    <button style="
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        padding: 12px 24px;
+                        border: none;
+                        border-radius: 8px;
+                        font-size: 16px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                    ">
+                        📥 Download ZIP Archive
+                    </button>
+                </a>
+                """, unsafe_allow_html=True)
+                
+                st.markdown("---")
+                st.markdown("""
+                ### 🎯 Next Steps
+                
+                1. **Extract** the ZIP file to your desired location
+                2. **Configure** the `.env` file with your API keys
+                3. **Install** dependencies: `pip install -r requirements.txt`
+                4. **Run** the application: `python main.py`
+                5. **Deploy** using Docker: `docker-compose up -d`
+                
+                Check the README.md file for detailed instructions!
+                """)
+        
+        # Show interactive code editor
+        from code_editor import render_code_editor
+        render_code_editor(project_id, result['run_id'])
 
 
 def show_history_page():
