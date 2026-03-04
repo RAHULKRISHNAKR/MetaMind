@@ -17,6 +17,7 @@ import uvicorn
 
 from ..orchestration.graph import create_orchestrator
 from ..agents.versioning_agent import VersioningAgent
+from ..demo_data import get_demo_scenario, get_all_demo_scenarios
 
 
 # Pydantic models for request/response
@@ -290,6 +291,74 @@ async def start_design(request: DesignRequest, background_tasks: BackgroundTasks
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Design failed: {str(e)}")
+
+
+@app.post("/api/demo/design", response_model=DesignResponse)
+async def start_demo_design(domain: str = Query(..., description="Demo domain (healthcare or ecommerce)")):
+    """
+    Start a demo design with pre-cached results for instant response.
+    
+    This endpoint returns immediate results without running the full pipeline,
+    perfect for demonstrations and testing the UI.
+    """
+    try:
+        # Get demo scenario
+        demo = get_demo_scenario(domain)
+        if not demo:
+            available = get_all_demo_scenarios()
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid demo domain. Available: {', '.join(available)}"
+            )
+        
+        run_id = demo["run_id"]
+        
+        # Store demo result in active_designs
+        active_designs[run_id] = {
+            "status": "completed",
+            "result": demo["result"],
+            "error": None,
+            "progress": {
+                "stages": [
+                    {"stage": "demo", "message": "✨ Demo mode - instant results!", "timestamp": time.time()}
+                ],
+                "current_stage": "completed",
+                "current_message": "Demo design completed instantly",
+                "details": {"demo": True, "domain": domain}
+            }
+        }
+        
+        return DesignResponse(
+            run_id=run_id,
+            status="completed",
+            message=f"Demo design completed! This is a pre-cached {domain} scenario."
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Demo failed: {str(e)}")
+
+
+@app.get("/api/demo/scenarios")
+async def get_demo_scenarios():
+    """Get list of available demo scenarios."""
+    return {
+        "scenarios": [
+            {
+                "domain": "healthcare",
+                "title": "Patient Monitoring System",
+                "description": "AI-powered real-time patient vital signs monitoring with anomaly detection",
+                "features": ["Real-time processing", "HIPAA compliant", "Alert system"]
+            },
+            {
+                "domain": "ecommerce",
+                "title": "Product Recommendation Engine",
+                "description": "Personalized product recommendations using collaborative filtering and vision AI",
+                "features": ["Sub-200ms latency", "Multi-modal", "A/B testing"]
+            }
+        ]
+    }
 
 
 @app.get("/api/design/{run_id}/status", response_model=StatusResponse)
