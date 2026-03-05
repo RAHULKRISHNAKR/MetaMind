@@ -1,175 +1,103 @@
 # 🧠 MetaMind
 
-**Autonomous AI Pipeline Designer, Simulator and Self-Optimizing Architecture Engine**
+**Autonomous AI Pipeline Designer & Self-Optimizing Architecture Engine**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0-009688.svg)](https://fastapi.tiangolo.com)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.40.0-FF4B4B.svg)](https://streamlit.io)
+[![React](https://img.shields.io/badge/React-18.3.1-61DAFB.svg)](https://reactjs.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
 
 MetaMind is a cutting-edge **multi-agent AI system** that autonomously designs, simulates, optimizes, and iteratively improves AI pipelines under real-world constraints. It combines LLM reasoning with deterministic scoring to create production-ready AI architectures.
 
-![MetaMind Architecture](https://via.placeholder.com/800x400/1f77b4/ffffff?text=MetaMind+Architecture)
+---
 
 ## ✨ Key Features
 
-### 🤖 Multi-Agent System
-- **11 Specialized Agents** working in orchestrated harmony
-- **LangGraph Pipeline** for state management and routing
-- **Hybrid Approach**: LLM reasoning + deterministic scoring
+🤖 **11 Specialized AI Agents** - Orchestrated via LangGraph for intelligent pipeline design  
+🎯 **Domain-Adaptive Optimization** - Healthcare, Finance, E-commerce, and more  
+📊 **Deterministic Scoring** - 6 metrics (Cost, Latency, Risk, Compliance, Scalability, Complexity)  
+🔄 **Self-Improvement Loop** - Automatic reflection and iterative refinement  
+💻 **Production-Ready Code** - Generate complete applications with Docker, monitoring, and docs  
+🎨 **Modern React UI** - Beautiful interface with Monaco Editor integration  
+🚀 **Demo Mode** - Instant results for presentations and testing  
 
-### 🎯 Intelligent Design
-- **Requirement Analysis**: Natural language to structured constraints
-- **Domain-Adaptive**: Optimizes based on industry (healthcare, finance, ecommerce, etc.)
-- **Template-Based**: 6 pre-built architecture patterns
-- **Constraint-Aware**: Budget, latency, risk, compliance, scalability
-
-### 📊 Comprehensive Evaluation
-- **6 Metrics**: Cost, Latency, Risk, Compliance, Scalability, Complexity
-- **Deterministic Scoring**: Reproducible results
-- **Normalized Scales**: 0-100 for easy comparison
-- **Weighted Optimization**: Domain-specific priorities
-
-### 🔄 Self-Improvement
-- **Reflection Agent**: Critiques designs with confidence scoring
-- **Iterative Refinement**: Automatic improvement cycles
-- **Version Control**: Track architecture evolution
-- **Comparison Engine**: Delta analysis between versions
-
-### 🎨 Full-Featured Interface
-- **Streamlit Frontend**: Beautiful, interactive web UI
-- **FastAPI Backend**: 10 REST endpoints
-- **Real-Time Progress**: Live status updates
-- **Visual Dashboards**: Radar charts, metrics cards
-- **Design History**: Browse and compare past designs
-
-### 🚀 Production-Ready
-- **Docker Support**: Containerized deployment
-- **Health Checks**: Automated monitoring
-- **Persistent Storage**: SQLite with volume mounting
-- **Environment Config**: Flexible deployment options
-- **Comprehensive Docs**: Multiple guides
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    USER BROWSER                          │
-│              http://localhost:8501                       │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│              STREAMLIT FRONTEND                          │
-│  • Interactive Forms    • Visual Dashboards              │
-│  • Real-time Progress   • History Browser                │
-└────────────────────┬────────────────────────────────────┘
-                     │ REST API
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│               FASTAPI BACKEND                            │
-│              http://localhost:8000                       │
-│  • 10 REST Endpoints  • Request Validation               │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│            LANGGRAPH ORCHESTRATOR                        │
-│  • 11 Specialized Agents  • State Management             │
-│  • Conditional Routing    • Iteration Control            │
-└────────────────────┬────────────────────────────────────┘
-                     │
-        ┌────────────┴────────────┐
-        ▼                         ▼
-┌──────────────┐         ┌──────────────┐
-│    OLLAMA    │         │   SQLITE DB  │
-│  (Llama 3)   │         │  (Versions)  │
-└──────────────┘         └──────────────┘
-```
+---
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Option 1: Docker (Recommended)
 
-- Python 3.11+
-- Ollama with Llama 3 model
-- Docker (optional, for containerized deployment)
-
-### Installation
-
-1. **Clone the repository**
 ```bash
+# Clone repository
 git clone https://github.com/yourusername/metamind.git
 cd metamind
-```
 
-2. **Install dependencies**
-```bash
-# Backend
-pip install -r backend/requirements.txt
+# Set up environment
+cp .env.example .env
+# Edit .env and add your GROK_API_KEY
 
-# Frontend
-pip install -r frontend/requirements.txt
-```
-
-3. **Start Ollama**
-```bash
-ollama serve
-ollama pull llama3
-```
-
-4. **Start the backend**
-```bash
-python run_backend.py
-```
-
-5. **Start the frontend** (in a new terminal)
-```bash
-python run_frontend.py
-```
-
-6. **Open your browser**
-- Frontend: http://localhost:8501
-- API Docs: http://localhost:8000/docs
-
-### Docker Deployment
-
-```bash
 # Start all services
 docker-compose up -d
 
-# View logs
-docker-compose logs -f
-
-# Stop services
-docker-compose down
+# Access the application
+# Frontend: http://localhost:5173
+# API Docs: http://localhost:8000/docs
 ```
 
-## 📖 Documentation
+### Option 2: Local Development
 
-- **[Quick Start Guide](QUICKSTART.md)** - Get up and running in 5 minutes
-- **[Frontend Guide](FRONTEND_GUIDE.md)** - Complete UI documentation
-- **[Production Deployment](PRODUCTION_DEPLOYMENT.md)** - Enterprise deployment guide
-- **[Architecture Details](METAMIND_ARCHITECTURE.md)** - System design and specifications
-- **[Implementation Plan](IMPLEMENTATION_PLAN.md)** - Development roadmap
+**Prerequisites:**
+- Python 3.11+
+- Node.js 18+
+- Grok API key (or Ollama with Llama 3)
 
-## 🎯 Usage Example
+**Backend:**
+```bash
+cd backend
+pip install -r requirements.txt
+python run_backend.py
+```
 
-### Via Web Interface
+**Frontend:**
+```bash
+cd frontend-react
+npm install
+npm run dev
+```
 
-1. Open http://localhost:8501
-2. Fill in the design form:
-   - **Business Goal**: "Build a customer support chatbot for e-commerce"
-   - **Domain**: ecommerce
-   - **Modalities**: text
-   - **Constraints**: Budget $5000, Latency 300ms, 50K users
-3. Click "🚀 Design Architecture"
-4. Watch real-time progress
-5. View results with interactive visualizations
-6. Download complete specification
+**Access:**
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
 
-### Via API
+---
+
+## 🎯 Usage
+
+### 1. Try Demo Mode (Fastest)
+
+1. Open http://localhost:5173
+2. Click **"Try Demo"** button
+3. Select a pre-configured scenario:
+   - 🏥 Healthcare Patient Monitoring
+   - 🛒 E-commerce Recommendation Engine
+4. Get instant results with production-ready code
+
+### 2. Design Custom Architecture
+
+1. Fill in the design form:
+   - **Business Goal**: "Build a customer support chatbot"
+   - **Domain**: E-commerce
+   - **Modalities**: Text
+   - **Constraints**: Budget, latency, users, risk, compliance
+2. Click **"🚀 Design Architecture"**
+3. Watch real-time progress through 11 agent steps
+4. View results with interactive visualizations
+5. Generate production-ready code
+6. Download complete project as ZIP
+
+### 3. Use API Directly
 
 ```bash
 curl -X POST http://localhost:8000/api/design \
@@ -189,9 +117,48 @@ curl -X POST http://localhost:8000/api/design \
   }'
 ```
 
-## 🧩 Components
+---
 
-### 11 Specialized Agents
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    USER BROWSER                          │
+│              http://localhost:5173                       │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│              REACT FRONTEND (Vite)                       │
+│  • Interactive Forms    • Monaco Editor                  │
+│  • Real-time Progress   • Code Generation                │
+└────────────────────┬────────────────────────────────────┘
+                     │ REST API
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│               FASTAPI BACKEND                            │
+│              http://localhost:8000                       │
+│  • 10 REST Endpoints  • Request Validation               │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│            LANGGRAPH ORCHESTRATOR                        │
+│  • 11 Specialized Agents  • State Management             │
+│  • Conditional Routing    • Iteration Control            │
+└────────────────────┬────────────────────────────────────┘
+                     │
+        ┌────────────┴────────────┐
+        ▼                         ▼
+┌──────────────┐         ┌──────────────┐
+│  Grok API    │         │   SQLITE DB  │
+│  (or Ollama) │         │  (Versions)  │
+└──────────────┘         └──────────────┘
+```
+
+---
+
+## 🧩 11 Specialized Agents
 
 1. **RequirementAgent** - Parse natural language to structured JSON
 2. **DomainWeightTuningAgent** - Map domain to optimization weights
@@ -203,78 +170,133 @@ curl -X POST http://localhost:8000/api/design \
 8. **IterationAgent** - Apply improvements based on reflection
 9. **VersioningAgent** - Store versions in database
 10. **ComparisonAgent** - Calculate version deltas
-11. **SpecGeneratorAgent** - Generate documentation
+11. **SpecGeneratorAgent** - Generate comprehensive documentation
 
-### Architecture Templates
+---
 
-- **LLM + RAG Pipeline** - Retrieval-augmented generation
-- **Multi-Agent LLM System** - Collaborative AI agents
-- **Vision + LLM Multimodal** - Image and text processing
-- **Tool-Augmented Agent** - External tool integration
-- **Fine-Tuned Compact Model** - Optimized small models
-- **Hybrid Multi-Model** - Multiple model arbitration
+## 📊 Evaluation Metrics
 
-### Evaluation Metrics
+| Metric | Description | Optimization |
+|--------|-------------|--------------|
+| **Cost** | Infrastructure + operational costs | Lower is better |
+| **Latency** | Response time performance | Lower is better |
+| **Risk** | Security and reliability risks | Lower is better |
+| **Compliance** | Regulatory adherence | Higher is better |
+| **Scalability** | Growth capacity | Higher is better |
+| **Complexity** | Implementation difficulty | Lower is better |
 
-| Metric | Description | Scale |
-|--------|-------------|-------|
-| **Cost** | Infrastructure + operational costs | 0-100 |
-| **Latency** | Response time performance | 0-100 |
-| **Risk** | Security and reliability risks | 0-100 |
-| **Compliance** | Regulatory adherence | 0-100 |
-| **Scalability** | Growth capacity | 0-100 |
-| **Complexity** | Implementation difficulty | 0-100 |
+All metrics normalized to **0-100 scale** for easy comparison.
 
-## 🎨 Screenshots
+---
 
-### Design Form
-![Design Form](https://via.placeholder.com/800x400/f0f2f6/333333?text=Interactive+Design+Form)
+## 🎨 Features
 
-### Real-Time Progress
-![Progress](https://via.placeholder.com/800x400/fff3cd/333333?text=Real-Time+Progress+Tracking)
+### 🔄 Self-Improvement Loop
 
-### Results Dashboard
-![Results](https://via.placeholder.com/800x400/d4edda/333333?text=Visual+Metrics+Dashboard)
+MetaMind automatically critiques and improves designs:
 
-### Design History
-![History](https://via.placeholder.com/800x400/cce5ff/333333?text=Design+History+Browser)
+1. **Reflection Agent** analyzes the design and assigns confidence score
+2. If confidence < 0.85, **Iteration Agent** applies improvements
+3. Process repeats until confidence ≥ 0.85 or max iterations reached
+4. All versions stored for comparison
+
+### 💻 Production-Ready Code Generation
+
+Generate complete applications with:
+- ✅ FastAPI backend with ML models
+- ✅ Docker Compose with PostgreSQL, Redis, Prometheus, Grafana
+- ✅ Multi-stage Dockerfile for optimization
+- ✅ Comprehensive README with deployment guide
+- ✅ Environment configuration templates
+- ✅ Health checks and monitoring
+
+### 🎯 Domain-Adaptive Optimization
+
+Weights automatically tuned based on domain:
+
+**Healthcare:** Prioritizes Risk (30%) + Compliance (30%)  
+**Finance:** Balances Risk (25%) + Compliance (25%) + Latency (20%)  
+**E-commerce:** Optimizes Latency (25%) + Scalability (25%)  
+
+---
+
+## 📖 Documentation
+
+- **[Implementation Guide](IMPLEMENTATION.md)** - Complete technical documentation (1000+ lines)
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute
+- **[API Documentation](http://localhost:8000/docs)** - Interactive API docs (when running)
+
+---
 
 ## 🔧 Configuration
 
 ### Environment Variables
 
-**Backend (.env):**
+Create `.env` file in project root:
+
 ```bash
+# LLM Provider (choose one)
+GROK_API_KEY=your_grok_api_key_here
+# OR
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=llama3
+
+# Database
 DB_PATH=./metamind.db
+
+# Server
 PORT=8000
 LOG_LEVEL=INFO
+
+# CORS (for production)
+CORS_ORIGINS=https://yourdomain.com
 ```
 
-**Frontend:**
-```bash
-API_BASE_URL=http://localhost:8000
-STREAMLIT_SERVER_PORT=8501
-```
+### Domain Weights Customization
 
-### Domain Weights
-
-Customize optimization priorities in `backend/agents/domain_weight_tuning_agent.py`:
+Edit [`backend/agents/domain_weight_tuning_agent.py`](backend/agents/domain_weight_tuning_agent.py):
 
 ```python
 DOMAIN_WEIGHTS = {
-    "healthcare": {
-        "cost": 0.10,
-        "latency": 0.15,
-        "risk": 0.30,      # High priority
-        "compliance": 0.30, # High priority
-        "scalability": 0.10,
+    "your_domain": {
+        "cost": 0.15,
+        "latency": 0.20,
+        "risk": 0.25,
+        "compliance": 0.20,
+        "scalability": 0.15,
         "complexity": 0.05
-    },
-    # Add your custom domain...
+    }
 }
 ```
+
+---
+
+## 🐳 Docker Deployment
+
+### Development
+
+```bash
+docker-compose up -d
+docker-compose logs -f
+```
+
+### Production
+
+```bash
+# Build images
+docker-compose -f docker-compose.prod.yml build
+
+# Start services
+docker-compose -f docker-compose.prod.yml up -d
+
+# View logs
+docker-compose -f docker-compose.prod.yml logs -f
+
+# Stop services
+docker-compose -f docker-compose.prod.yml down
+```
+
+---
 
 ## 📊 Performance
 
@@ -283,44 +305,56 @@ DOMAIN_WEIGHTS = {
 - **Iteration Cycle**: 1-2 minutes per improvement
 - **API Response Time**: <100ms (excluding LLM calls)
 - **Frontend Load Time**: <2 seconds
+- **Demo Mode**: Instant results (<1 second)
+
+---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md).
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open Pull Request
+
+---
 
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+---
+
 ## 🙏 Acknowledgments
 
-- **LangChain** - LLM framework
-- **LangGraph** - Agent orchestration
-- **FastAPI** - Backend framework
-- **Streamlit** - Frontend framework
-- **Ollama** - Local LLM runtime
-- **Plotly** - Interactive visualizations
+- **LangChain** & **LangGraph** - LLM orchestration framework
+- **FastAPI** - Modern Python web framework
+- **React** & **Vite** - Frontend framework and build tool
+- **Monaco Editor** - VS Code's editor for the web
+- **Grok** / **Ollama** - LLM providers
 
-## 📧 Contact
+---
 
-- **Author**: Your Name
-- **Email**: your.email@example.com
-- **GitHub**: [@yourusername](https://github.com/yourusername)
-- **Project**: [MetaMind](https://github.com/yourusername/metamind)
+## 📧 Support
+
+- **Issues**: [GitHub Issues](https://github.com/yourusername/metamind/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/metamind/discussions)
+- **Email**: support@metamind.ai
+
+---
 
 ## 🗺️ Roadmap
 
-- [x] Core multi-agent system
-- [x] Deterministic scoring engine
+- [x] Core multi-agent system with 11 specialized agents
+- [x] Deterministic scoring engine with 6 metrics
 - [x] Reflection and iteration loop
-- [x] FastAPI backend
-- [x] Streamlit frontend
+- [x] FastAPI backend with 10 REST endpoints
+- [x] Modern React frontend with Vite
+- [x] Monaco Editor integration
+- [x] Demo mode with instant results
+- [x] Production-ready code generation
 - [x] Docker deployment
 - [ ] Kubernetes support
 - [ ] Authentication & authorization
@@ -333,24 +367,30 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Custom domain support
 - [ ] API rate limiting
 
-## 📈 Stats
+---
 
-- **Lines of Code**: 8,000+
-- **Files**: 30+
+## 📈 Project Stats
+
+- **Lines of Code**: 15,000+
+- **Files**: 100+
 - **Agents**: 11
-- **Endpoints**: 10
-- **Templates**: 6
-- **Metrics**: 6
-- **Documentation**: 2,500+ lines
-
-## 🎉 Success Stories
-
-> "MetaMind helped us design a production-ready RAG pipeline in under 10 minutes. The iterative improvement feature is game-changing!" - *Tech Lead, Fortune 500 Company*
-
-> "The domain-adaptive optimization saved us weeks of architecture planning. Highly recommended!" - *CTO, AI Startup*
+- **API Endpoints**: 10
+- **Architecture Templates**: 6
+- **Evaluation Metrics**: 6
+- **Documentation**: 3,000+ lines
 
 ---
 
 **Built with ❤️ by the MetaMind Team**
 
 **⭐ Star us on GitHub if you find this useful!**
+
+---
+
+## 🎉 Quick Links
+
+- [🚀 Quick Start](#-quick-start)
+- [📖 Documentation](IMPLEMENTATION.md)
+- [🐳 Docker Deployment](#-docker-deployment)
+- [🤝 Contributing](CONTRIBUTING.md)
+- [📝 License](LICENSE)
