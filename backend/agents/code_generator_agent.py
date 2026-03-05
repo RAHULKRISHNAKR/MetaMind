@@ -80,7 +80,9 @@ class CodeGeneratorAgent:
             # Generate files based on architecture type
             files_generated = []
             
-            if arch_type == "rag_pipeline":
+            if arch_type == "healthcare_monitoring":
+                files_generated = self._generate_healthcare_monitoring(config, output_dir)
+            elif arch_type == "rag_pipeline":
                 files_generated = self._generate_rag_pipeline(config, output_dir)
             elif arch_type == "multi_agent":
                 logger.warning(f"⚠️ Multi-agent templates not yet implemented. Falling back to RAG pipeline.")
@@ -127,6 +129,14 @@ class CodeGeneratorAgent:
         modules = blueprint.get("modules", [])
         
         logger.info(f"🔍 Detecting architecture type from template: '{template_name}'")
+        
+        # Check for healthcare monitoring (real-time analytics with anomaly detection)
+        if "real_time_analytics" in template_name or "patient_monitoring" in template_name:
+            # Check if it has anomaly detection or healthcare components
+            module_names = [m.get("component", "").lower() for m in modules]
+            if any("anomaly" in m or "patient" in m or "vital" in m or "hipaa" in m for m in module_names):
+                logger.info("✅ Detected: Healthcare Monitoring System")
+                return "healthcare_monitoring"
         
         # Check template name first
         if "rag" in template_name or "retrieval" in template_name:
@@ -291,6 +301,62 @@ class CodeGeneratorAgent:
                 raise
         
         logger.info(f"✅ RAG Pipeline generation complete: {len(generated_files)} files")
+        return generated_files
+    
+    def _generate_healthcare_monitoring(self, config: Dict[str, Any], output_dir: Path) -> List[str]:
+        """Generate Healthcare Monitoring System project files with proper structure."""
+        template_dir = self.templates_dir / "healthcare_monitoring" / "python"
+        
+        # Verify template directory exists
+        if not template_dir.exists():
+            logger.error(f"❌ Template directory not found: {template_dir}")
+            raise FileNotFoundError(f"Template directory not found: {template_dir}")
+        
+        logger.info(f"📁 Using template directory: {template_dir}")
+        
+        env = Environment(loader=FileSystemLoader(str(template_dir)))
+        
+        # Comprehensive file structure with proper organization
+        files_to_generate = [
+            # Root level files
+            ("main.py.j2", "main.py"),
+            ("requirements.txt.j2", "requirements.txt"),
+            ("Dockerfile.j2", "Dockerfile"),
+            ("docker-compose.yml.j2", "docker-compose.yml"),
+            (".env.example.j2", ".env.example"),
+            (".gitignore.j2", ".gitignore"),
+            ("README.md.j2", "README.md"),
+            
+            # App module files
+            ("app/__init__.py.j2", "app/__init__.py"),
+            ("app/models.py.j2", "app/models.py"),
+            ("app/schemas.py.j2", "app/schemas.py"),
+            ("app/database.py.j2", "app/database.py"),
+        ]
+        
+        generated_files = []
+        
+        for template_name, output_name in files_to_generate:
+            try:
+                logger.info(f"📝 Rendering template: {template_name} -> {output_name}")
+                template = env.get_template(template_name)
+                content = template.render(**config)
+                
+                output_path = output_dir / output_name
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                output_path.write_text(content)
+                
+                generated_files.append(str(output_path))
+                logger.info(f"✅ Generated: {output_name} ({len(content)} bytes)")
+            
+            except Exception as e:
+                logger.error(f"❌ Failed to generate {output_name}: {str(e)}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                # Continue with other files even if one fails
+                continue
+        
+        logger.info(f"✅ Healthcare Monitoring generation complete: {len(generated_files)} files")
         return generated_files
     
     def _generate_multi_agent(self, config: Dict[str, Any], output_dir: Path) -> List[str]:
