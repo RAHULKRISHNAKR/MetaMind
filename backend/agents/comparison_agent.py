@@ -275,5 +275,3 @@ class ComparisonAgent:
         summary += f"\n**Best Version**: v{best['version']} (Score: {best['score']:.1f})\n"
         
         return summary
-
-# Made with Bob

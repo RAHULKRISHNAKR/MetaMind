@@ -37,62 +37,171 @@ class ArchitectureGenerationAgent:
         self.llm = Ollama(
             base_url=ollama_base_url,
             model=model_name,
-            temperature=0.7  # Higher temperature for diversity
+            temperature=0.1
         )
         
         self.prompt_template = PromptTemplate(
             input_variables=["business_goal", "domain", "modalities", "budget", "latency", "users", "risk", "compliance", "templates"],
-            template="""You are an expert AI architecture designer. Generate 3-5 DISTINCT AI pipeline architectures.
+            template="""You are a senior AI systems architect with deep expertise in production ML pipelines, LLMOps, and enterprise AI deployments. Your task is to design 3-5 DISTINCT, production-ready AI pipeline architectures tailored to the exact constraints provided.
 
-Requirements:
-- Business Goal: {business_goal}
-- Domain: {domain}
-- Modalities: {modalities}
-- Budget: ${budget}/month
-- Latency Target: {latency}ms
-- Expected Users: {users}
-- Risk Tolerance: {risk}
-- Compliance Level: {compliance}
+## CONTEXT & REQUIREMENTS
 
-Available Templates:
+| Parameter         | Value                          |
+|-------------------|-------------------------------|
+| Business Goal     | {business_goal}               |
+| Domain            | {domain}                      |
+| Modalities        | {modalities}                  |
+| Monthly Budget    | ${budget}/month               |
+| Latency Target    | {latency}ms (p95)             |
+| Expected Users    | {users}                       |
+| Risk Tolerance    | {risk}                        |
+| Compliance Level  | {compliance}                  |
+
+## AVAILABLE TEMPLATES
 {templates}
 
-For EACH architecture (generate 3-5), provide:
-1. Unique name (descriptive)
-2. Template used (from list above)
-3. Modules for each layer:
-   - Data Layer (e.g., PostgreSQL, MongoDB, S3, Redis)
-   - Preprocessing Layer (e.g., Data Validation, Cleaning, Feature Engineering)
-   - Embedding Layer (e.g., Sentence Transformers, OpenAI Embeddings, CLIP)
-   - Model Layer (e.g., Llama 3 8B, GPT-4, Claude, Fine-tuned model)
-   - Tool Layer (e.g., Web Search, Code Execution, Database Query)
-   - Agent Orchestration Layer (e.g., LangGraph, CrewAI, Custom)
-   - Validation & Safety Layer (e.g., Input Sanitization, Output Validation)
-   - Monitoring Layer (e.g., Prometheus, OpenTelemetry, Logging)
-   - Deployment Layer (e.g., Docker, Kubernetes, API Gateway)
-4. Topology (sequential, parallel, or hierarchical)
+---
 
-Make architectures DIVERSE - vary models, components, and approaches.
+## ARCHITECTURE DESIGN RULES
 
-Output ONLY valid JSON array:
+### Diversity Requirements
+Each architecture MUST differ in at least 3 of the following dimensions:
+- Primary model provider (OpenAI / Anthropic / open-source / fine-tuned)
+- Orchestration strategy (single-agent / multi-agent / pipeline / RAG-only)
+- Deployment model (serverless / containerized / edge / managed API)
+- Cost profile (premium / balanced / cost-optimized)
+- Latency strategy (streaming / batch / cached / real-time)
+
+### Budget Adherence
+Explicitly map each component to a monthly cost estimate. Total must stay within ${budget}/month. Include a cost_breakdown field.
+
+### Risk & Compliance Sensitivity
+- HIGH risk or HIPAA/SOC2/GDPR compliance → mandatory guardrails, audit logging, PII redaction, output validation
+- LOW risk → lighter validation stack is acceptable
+- Reflect compliance posture in the Validation & Safety and Monitoring layers
+
+### Latency Realism
+- <200ms → avoid large models without caching; prefer streaming or smaller fine-tuned models
+- 200–1000ms → mid-size models acceptable; caching recommended
+- >1000ms → large models, agentic loops, and multi-step pipelines are viable
+
+---
+
+## LAYER DEFINITIONS & COMPONENT GUIDANCE
+
+For EACH architecture, populate ALL 9 layers:
+
+1. **Data Layer** — Storage & retrieval infrastructure  
+   Examples: PostgreSQL, MongoDB, Pinecone, Weaviate, S3, Redis, Snowflake, BigQuery
+
+2. **Preprocessing Layer** — Data ingestion, transformation, quality  
+   Examples: Data Validation, PII Scrubbing, Chunking Strategy, OCR, Tokenization, Feature Engineering
+
+3. **Embedding Layer** — Vector representation of inputs  
+   Examples: text-embedding-3-small, text-embedding-3-large, Sentence Transformers (all-MiniLM), CLIP, Cohere Embed, BGE-M3
+
+4. **Model Layer** — Core inference engine  
+   Examples: GPT-4o, GPT-4o-mini, Claude 3.5 Sonnet, Claude 3 Haiku, Llama 3 70B, Mistral 7B, fine-tuned domain model, Gemini 1.5 Pro
+
+5. **Tool Layer** — External capabilities and integrations  
+   Examples: Web Search, Code Execution (E2B), SQL Query, REST API Calls, File I/O, Calculator, Knowledge Base Lookup
+
+6. **Agent Orchestration Layer** — Control flow and reasoning strategy  
+   Examples: LangGraph (stateful), CrewAI (multi-agent), AutoGen, LlamaIndex (RAG pipeline), Custom FSM, Single-shot chain
+
+7. **Validation & Safety Layer** — Input/output guardrails  
+   Examples: Prompt Injection Detection, Llama Guard, Output Schema Validation, PII Redaction, Toxicity Filter, Hallucination Scorer, Rate Limiting
+
+8. **Monitoring Layer** — Observability and feedback  
+   Examples: LangSmith, Helicone, OpenTelemetry, Prometheus + Grafana, Arize Phoenix, Custom Logging, Evals Pipeline
+
+9. **Deployment Layer** — Runtime and serving infrastructure  
+   Examples: Docker + Kubernetes, AWS Lambda, Modal, Fly.io, Azure OpenAI Managed, Vercel Edge, FastAPI + NGINX
+
+---
+
+## TOPOLOGY OPTIONS
+
+- **sequential** — Layers execute one after another; simplest control flow
+- **parallel** — Multiple branches run concurrently, results merged (e.g., ensemble models, multi-retriever)
+- **hierarchical** — Orchestrator delegates to specialized sub-agents or pipelines
+- **hybrid** — Combination (specify which stages are parallel vs sequential)
+
+---
+
+## OUTPUT FORMAT
+
+Output ONLY a valid JSON array. No markdown, no explanation, no preamble. Each architecture object must follow this schema exactly:
+
 [
-  {{
-    "name": "Architecture name",
-    "template": "Template name",
+  {
+    "name": "Descriptive architecture name (e.g., 'Lean RAG Chatbot with Haiku')",
+    "template": "Template name from provided list",
+    "rationale": "2–3 sentence justification of why this architecture fits the requirements",
+    "topology": "sequential | parallel | hierarchical | hybrid",
+    "cost_estimate": "$XXX/month (brief breakdown)",
+    "tradeoffs": {
+      "strengths": ["strength 1", "strength 2"],
+      "weaknesses": ["weakness 1", "weakness 2"]
+    },
     "modules": [
-      {{
+      {
         "layer": "Data Layer",
-        "component": "PostgreSQL + Redis",
-        "config": {{"connection_pool": 20}}
-      }},
-      ...
-    ],
-    "topology": "sequential"
-  }},
-  ...
-]
-
-JSON Output:"""
+        "component": "Component name(s)",
+        "config": { "key": "value" },
+        "cost_note": "~$X/month or free tier"
+      },
+      {
+        "layer": "Preprocessing Layer",
+        "component": "Component name(s)",
+        "config": { "key": "value" },
+        "cost_note": "~$X/month or free tier"
+      },
+      {
+        "layer": "Embedding Layer",
+        "component": "Component name(s)",
+        "config": { "model": "...", "dimensions": 0 },
+        "cost_note": "~$X/month"
+      },
+      {
+        "layer": "Model Layer",
+        "component": "Component name(s)",
+        "config": { "model": "...", "temperature": 0.0, "max_tokens": 0 },
+        "cost_note": "~$X/month"
+      },
+      {
+        "layer": "Tool Layer",
+        "component": "Component name(s)",
+        "config": { "key": "value" },
+        "cost_note": "~$X/month or N/A"
+      },
+      {
+        "layer": "Agent Orchestration Layer",
+        "component": "Component name(s)",
+        "config": { "strategy": "...", "max_iterations": 0 },
+        "cost_note": "open-source / $X/month"
+      },
+      {
+        "layer": "Validation & Safety Layer",
+        "component": "Component name(s)",
+        "config": { "checks": [] },
+        "cost_note": "~$X/month or open-source"
+      },
+      {
+        "layer": "Monitoring Layer",
+        "component": "Component name(s)",
+        "config": { "metrics": [], "alert_thresholds": {} },
+        "cost_note": "~$X/month or open-source"
+      },
+      {
+        "layer": "Deployment Layer",
+        "component": "Component name(s)",
+        "config": { "replicas": 0, "autoscaling": true },
+        "cost_note": "~$X/month"
+      }
+    ]
+  }
+]"""
         )
     
     def execute(self, state: MetaMindState) -> MetaMindState:
@@ -419,4 +528,54 @@ JSON Output:"""
         
         return fallback_archs
 
-# Made with Bob
+"""You are an expert AI architecture designer. Generate 3-5 DISTINCT AI pipeline architectures.
+
+Requirements:
+- Business Goal: {business_goal}
+- Domain: {domain}
+- Modalities: {modalities}
+- Budget: ${budget}/month
+- Latency Target: {latency}ms
+- Expected Users: {users}
+- Risk Tolerance: {risk}
+- Compliance Level: {compliance}
+
+Available Templates:
+{templates}
+
+For EACH architecture (generate 3-5), provide:
+1. Unique name (descriptive)
+2. Template used (from list above)
+3. Modules for each layer:
+   - Data Layer (e.g., PostgreSQL, MongoDB, S3, Redis)
+   - Preprocessing Layer (e.g., Data Validation, Cleaning, Feature Engineering)
+   - Embedding Layer (e.g., Sentence Transformers, OpenAI Embeddings, CLIP)
+   - Model Layer (e.g., Llama 3 8B, GPT-4, Claude, Fine-tuned model)
+   - Tool Layer (e.g., Web Search, Code Execution, Database Query)
+   - Agent Orchestration Layer (e.g., LangGraph, CrewAI, Custom)
+   - Validation & Safety Layer (e.g., Input Sanitization, Output Validation)
+   - Monitoring Layer (e.g., Prometheus, OpenTelemetry, Logging)
+   - Deployment Layer (e.g., Docker, Kubernetes, API Gateway)
+4. Topology (sequential, parallel, or hierarchical)
+
+Make architectures DIVERSE - vary models, components, and approaches.
+
+Output ONLY valid JSON array:
+[
+  {{
+    "name": "Architecture name",
+    "template": "Template name",
+    "modules": [
+      {{
+        "layer": "Data Layer",
+        "component": "PostgreSQL + Redis",
+        "config": {{"connection_pool": 20}}
+      }},
+      ...
+    ],
+    "topology": "sequential"
+  }},
+  ...
+]
+
+JSON Output:"""

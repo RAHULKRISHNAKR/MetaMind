@@ -30,4 +30,3 @@ __all__ = [
     "SpecGeneratorAgent",
 ]
 
-# Made with Bob

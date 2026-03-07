@@ -58,9 +58,9 @@ class CodeGeneratorAgent:
             - message: Status message
         """
         try:
-            logger.info(f"🚀 Starting code generation for: {project_name}")
-            logger.info(f"📦 Blueprint keys: {list(architecture_blueprint.keys())}")
-            logger.info(f"📦 Blueprint template field: {architecture_blueprint.get('template', 'NOT FOUND')}")
+            logger.info(f" Starting code generation for: {project_name}")
+            logger.info(f"Blueprint keys: {list(architecture_blueprint.keys())}")
+            logger.info(f"Blueprint template field: {architecture_blueprint.get('template', 'NOT FOUND')}")
             
             # Determine architecture type
             arch_type = self._detect_architecture_type(architecture_blueprint)
@@ -75,7 +75,7 @@ class CodeGeneratorAgent:
             
             # Extract configuration from blueprint
             config = self._extract_configuration(architecture_blueprint, project_name)
-            logger.info(f"📝 Extracted config with {len(config)} parameters")
+            logger.info(f"Extracted config with {len(config)} parameters")
             
             # Generate files based on architecture type
             files_generated = []
@@ -314,8 +314,6 @@ class CodeGeneratorAgent:
         
         logger.info(f"📁 Using template directory: {template_dir}")
         
-        env = Environment(loader=FileSystemLoader(str(template_dir)))
-        
         # Comprehensive file structure with proper organization
         files_to_generate = [
             # Root level files
@@ -327,11 +325,11 @@ class CodeGeneratorAgent:
             (".gitignore.j2", ".gitignore"),
             ("README.md.j2", "README.md"),
             
-            # App module files
-            ("app/__init__.py.j2", "app/__init__.py"),
-            ("app/models.py.j2", "app/models.py"),
-            ("app/schemas.py.j2", "app/schemas.py"),
-            ("app/database.py.j2", "app/database.py"),
+            # App module files (template path, output path)
+            ("app/__init__.py.j2", "./app/__init__.py"),
+            ("app/models.py.j2", "./app/models.py"),
+            ("app/schemas.py.j2", "./app/schemas.py"),
+            ("app/database.py.j2", "./app/database.py"),
         ]
         
         generated_files = []
@@ -339,7 +337,20 @@ class CodeGeneratorAgent:
         for template_name, output_name in files_to_generate:
             try:
                 logger.info(f"📝 Rendering template: {template_name} -> {output_name}")
-                template = env.get_template(template_name)
+                
+                # Construct full template path
+                template_path = template_dir / template_name
+                
+                if not template_path.exists():
+                    logger.warning(f"⚠️ Template not found: {template_path}, skipping...")
+                    continue
+                
+                # Read template content directly
+                template_content = template_path.read_text()
+                
+                # Create Jinja2 template from string
+                from jinja2 import Template
+                template = Template(template_content)
                 content = template.render(**config)
                 
                 output_path = output_dir / output_name
@@ -455,5 +466,3 @@ if __name__ == "__main__":
     )
     
     print(json.dumps(result, indent=2))
-
-# Made with Bob
