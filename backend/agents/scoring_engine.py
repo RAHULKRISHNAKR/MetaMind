@@ -313,5 +313,3 @@ class DeterministicScoringEngine:
             explanation += f"\nWeaknesses: {', '.join(weaknesses)}"
         
         return explanation
-
-# Made with Bob

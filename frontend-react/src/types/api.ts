@@ -63,12 +63,36 @@ export interface Architecture {
   final_score?: number;
 }
 
+export interface ScoreExplanation {
+  score: number;
+  interpretation: string;
+  how_calculated: string;
+  what_it_means: string;
+  use_case: string;
+}
+
+export interface CostBreakdown {
+  model_inference: number;
+  infrastructure: number;
+  networking: number;
+  storage: number;
+  monitoring?: number;
+  total: number;
+  components: Record<string, number>;
+  notes?: string;
+}
+
 export interface ReflectionFeedback {
   confidence: number;
   strengths: string[];
   weaknesses: string[];
   improvement_suggestions: string[];
   should_iterate: boolean;
+  score_explanations?: {
+    overall: ScoreExplanation;
+    [key: string]: ScoreExplanation;
+  };
+  cost_breakdown?: CostBreakdown;
 }
 
 export interface ResultResponse {

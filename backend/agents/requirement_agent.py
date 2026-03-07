@@ -8,8 +8,9 @@ import json
 from typing import Dict, Any
 from langchain_core.prompts import PromptTemplate
 from ..orchestration.state import MetaMindState, VALID_DOMAINS, VALID_MODALITIES
-from ..utils.llm_utils import create_llm_with_retry, invoke_llm_with_retry, parse_json_with_retry
+from ..utils.llm_utils import create_llm_from_env, invoke_llm_with_retry, parse_json_with_retry
 from ..utils.validation import RequirementInput, ConstraintsInput
+from ..utils.logging_config import AgentLogger
 
 
 class RequirementAgent:
@@ -29,15 +30,12 @@ class RequirementAgent:
         Initialize the RequirementAgent.
         
         Args:
-            ollama_base_url: Base URL for Ollama service
-            model_name: Name of the Ollama model to use
+            ollama_base_url: Base URL for Ollama service (fallback if env not set)
+            model_name: Name of the model to use (fallback if env not set)
         """
-        self.llm = create_llm_with_retry(
-            base_url=ollama_base_url,
-            model=model_name,
-            temperature=0.1,  # Low temperature for consistent parsing
-            timeout=60
-        )
+        # Use environment-based LLM creation for seamless provider switching (Groq priority)
+        self.llm = create_llm_from_env(temperature=0.1, timeout=60)
+        self.logger = AgentLogger("RequirementAgent")
         
         self.prompt_template = PromptTemplate(
             input_variables=["business_goal", "domain", "modalities", "constraints"],
@@ -90,6 +88,13 @@ JSON Output:"""
             MetaMindState: Updated state with validated requirements
         """
         try:
+            # Initialize logger with run_id for streaming
+            run_id = state.get("run_id", "unknown")
+            if self.logger is None or self.logger.run_id != run_id:
+                self.logger = AgentLogger("RequirementAgent", run_id=run_id)
+            
+            self.logger.info("🔍 Analyzing your requirements...")
+            
             # Prepare input for LLM
             # Convert complex objects to strings for template
             constraints_dict = state.get("constraints", {})
@@ -122,11 +127,12 @@ JSON Output:"""
             if parsed.get("validation_notes"):
                 state["warnings"].extend(parsed["validation_notes"])
             
-            print(f"✓ Requirements validated: {state['domain']} domain, {len(state['modalities'])} modalities")
+            self.logger.info(f"✅ Requirements validated: {state['domain']} domain, {len(state['modalities'])} modalities")
             
         except Exception as e:
             error_msg = f"RequirementAgent failed: {str(e)}"
-            print(f"✗ {error_msg}")
+            if self.logger:
+                self.logger.error(f"❌ {error_msg}")
             state["errors"].append(error_msg)
             # Apply defaults on failure
             state = self._apply_defaults(state)
@@ -230,5 +236,3 @@ JSON Output:"""
         
         state["warnings"].append("Applied default values due to parsing failure")
         return state
-
-# Made with Bob

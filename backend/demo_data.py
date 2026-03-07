@@ -124,7 +124,74 @@ DEMO_HEALTHCARE = {
                 "Add redundancy for alert system to prevent single point of failure",
                 "Consider edge computing for remote patient monitoring"
             ],
-            "should_iterate": False
+            "should_iterate": False,
+            "score_explanations": {
+                "overall": {
+                    "score": 87.5,
+                    "interpretation": "Excellent - Exceeds requirements significantly",
+                    "description": "Weighted combination of all metrics based on healthcare domain priorities (reliability 20%, security 20%, compliance 15%)"
+                },
+                "cost": {
+                    "score": 82.0,
+                    "interpretation": "Very Good - Meets requirements with margin",
+                    "how_calculated": "Compares estimated monthly cost ($1,104.50) against budget ($5,000). Includes model inference ($450), infrastructure ($380), storage ($150), and networking ($124.50). Score formula: 100 - ((actual_cost / budget) * penalty_factor).",
+                    "what_it_means": "System operates at 22% of budget, leaving significant headroom for scaling. Cost efficiency is strong with optimized resource allocation.",
+                    "use_case": "Critical for healthcare facilities managing multiple monitoring systems. Detailed breakdown enables cost optimization and budget forecasting."
+                },
+                "latency": {
+                    "score": 88.0,
+                    "interpretation": "Excellent - Exceeds requirements significantly",
+                    "how_calculated": "P95 latency (450ms) vs target (500ms). Factors: model inference (150ms), database queries (50ms), anomaly detection (200ms), network (50ms). Parallel processing reduces total time by 30%.",
+                    "what_it_means": "System responds 10% faster than required, ensuring timely alerts for critical patient events. Real-time processing enables immediate medical intervention.",
+                    "use_case": "Essential for patient safety - faster detection of vital sign anomalies can save lives. Sub-500ms ensures medical staff receive alerts before conditions deteriorate."
+                },
+                "risk": {
+                    "score": 92.0,
+                    "interpretation": "Excellent - Exceeds requirements significantly",
+                    "how_calculated": "LLM assessment of: data security (encryption, access control), system reliability (redundancy, failover), model accuracy (95%+ anomaly detection), operational risks (monitoring, alerting). Comprehensive validation layers reduce failure probability.",
+                    "what_it_means": "System has robust safeguards against data breaches, system failures, and false alerts. High reliability ensures continuous patient monitoring without interruptions.",
+                    "use_case": "Critical for patient safety and hospital liability. Low risk profile reduces insurance costs and regulatory scrutiny."
+                },
+                "compliance": {
+                    "score": 98.0,
+                    "interpretation": "Excellent - Exceeds requirements significantly",
+                    "how_calculated": "Evaluated against HIPAA requirements: PHI encryption (AES-256), audit logging (all access tracked), data retention (7 years), patient consent management, breach notification procedures. Includes SOC2 Type II controls.",
+                    "what_it_means": "System meets all HIPAA technical safeguards and administrative requirements. Comprehensive audit trails support compliance audits and incident investigations.",
+                    "use_case": "Mandatory for healthcare operations. Non-compliance risks $50K+ fines per violation and potential criminal charges. This architecture ensures regulatory approval."
+                },
+                "scalability": {
+                    "score": 90.0,
+                    "interpretation": "Excellent - Exceeds requirements significantly",
+                    "how_calculated": "Capacity analysis: Kubernetes auto-scaling (3-50 pods), Redis caching (10K req/sec), database connection pooling (500 connections). Current: 5,000 patients, capacity: 50,000+ (10x headroom).",
+                    "what_it_means": "System can grow from single hospital to multi-facility network without architecture changes. Horizontal scaling handles traffic spikes during emergencies.",
+                    "use_case": "Supports hospital growth and seasonal variations (flu season, pandemics). Prevents system overload during critical periods."
+                },
+                "complexity": {
+                    "score": 85.0,
+                    "interpretation": "Very Good - Meets requirements with margin",
+                    "how_calculated": "Based on: 7 major components, Kubernetes orchestration (+2 complexity), real-time processing (+1), HIPAA compliance requirements (+1). Moderate DevOps expertise required.",
+                    "what_it_means": "System requires experienced DevOps team but uses standard technologies. 2-3 month implementation timeline with proper expertise.",
+                    "use_case": "Affects hiring needs and maintenance costs. Moderate complexity balances capability with operational feasibility."
+                }
+            },
+            "cost_breakdown": {
+                "model_inference": 450.0,
+                "infrastructure": 380.0,
+                "networking": 124.5,
+                "storage": 150.0,
+                "total": 1104.5,
+                "components": {
+                    "Llama 3 8B (anomaly detection)": 450.0,
+                    "PostgreSQL (patient records)": 50.0,
+                    "Redis (real-time caching)": 30.0,
+                    "Kubernetes (orchestration)": 200.0,
+                    "Prometheus (monitoring)": 30.0,
+                    "Grafana (dashboards)": 20.0,
+                    "S3 Storage (historical data)": 150.0,
+                    "Networking & CDN": 124.5,
+                    "Load Balancer": 50.0
+                }
+            }
         },
         "iterations": [
             {
@@ -711,7 +778,85 @@ DEMO_ECOMMERCE = {
                 "Add rate limiting to prevent API abuse",
                 "Consider multi-armed bandit algorithms for exploration-exploitation balance"
             ],
-            "should_iterate": False
+            "should_iterate": False,
+            "score_explanations": {
+                "overall": {
+                    "score": 91.3,
+                    "interpretation": "Excellent - Production-ready with minor optimizations needed",
+                    "how_calculated": "Weighted average of all metrics: (Performance×0.25 + Cost Efficiency×0.20 + Scalability×0.20 + Reliability×0.15 + Security×0.05 + Compliance×0.05 + Maintainability×0.10)",
+                    "what_it_means": "This architecture exceeds expectations across all critical dimensions. The system is highly optimized for e-commerce workloads with excellent performance and scalability.",
+                    "use_case": "Use this score to communicate overall system quality to stakeholders. Scores above 90 indicate production-ready systems with minimal risk."
+                },
+                "performance": {
+                    "score": 94.0,
+                    "interpretation": "Excellent - Exceeds latency targets significantly",
+                    "how_calculated": "Based on p95 latency (180ms) vs target (200ms). Score = 100 - (actual/target × penalty_factor). Parallel topology provides 30% latency reduction.",
+                    "what_it_means": "The system consistently delivers recommendations in under 180ms, well below the 200ms target. Redis caching and parallel processing ensure fast response times even under load.",
+                    "use_case": "Critical for user experience. Sub-200ms latency prevents cart abandonment and maintains engagement. This score validates the architecture can handle real-time personalization."
+                },
+                "cost_efficiency": {
+                    "score": 88.0,
+                    "interpretation": "Very Good - Well within budget with room for growth",
+                    "how_calculated": "Monthly cost ($42,500) vs budget ($50,000). Score = 100 × (1 - cost/budget) + efficiency_bonus. Includes model inference, infrastructure, and caching costs.",
+                    "what_it_means": "The system operates at 85% of budget, leaving $7,500/month for scaling or additional features. Cost-per-recommendation is optimized through efficient caching.",
+                    "use_case": "Demonstrates financial viability. The 15% buffer allows for traffic spikes and A/B testing without budget concerns."
+                },
+                "scalability": {
+                    "score": 92.0,
+                    "interpretation": "Excellent - Handles 3x expected load",
+                    "how_calculated": "Max concurrent users (300,000) vs expected (100,000). Score = min(100, (actual/expected) × 30). Parallel topology and Redis caching enable horizontal scaling.",
+                    "what_it_means": "The architecture can handle 300K concurrent users (3x capacity) through auto-scaling and load balancing. Black Friday traffic spikes are manageable.",
+                    "use_case": "Essential for e-commerce growth. This score confirms the system won't become a bottleneck as your user base expands."
+                },
+                "reliability": {
+                    "score": 90.0,
+                    "interpretation": "Excellent - 99.95% uptime guaranteed",
+                    "how_calculated": "Based on redundancy, failover mechanisms, and monitoring. Score factors in multi-region deployment, health checks, and auto-recovery capabilities.",
+                    "what_it_means": "The system maintains 99.95% availability (4.4 hours downtime/year). Redundant components and automatic failover prevent service disruptions.",
+                    "use_case": "Critical for revenue protection. High reliability ensures recommendations are always available, preventing lost sales opportunities."
+                },
+                "security": {
+                    "score": 85.0,
+                    "interpretation": "Good - Standard protections with room for enhancement",
+                    "how_calculated": "Evaluated authentication, encryption, API security, and data protection. Score reflects current implementation vs industry best practices.",
+                    "what_it_means": "Basic security measures are in place (HTTPS, API keys, input validation), but additional layers like rate limiting and WAF would improve protection.",
+                    "use_case": "Identifies security gaps. The 85% score suggests adding rate limiting and enhanced authentication for production deployment."
+                },
+                "compliance": {
+                    "score": 88.0,
+                    "interpretation": "Very Good - GDPR-ready with minor gaps",
+                    "how_calculated": "Assessed against GDPR, CCPA, and e-commerce regulations. Score based on data handling, user consent, and privacy controls.",
+                    "what_it_means": "The system handles user data responsibly with consent management and data retention policies. Minor improvements needed for full GDPR compliance.",
+                    "use_case": "Essential for EU markets. This score indicates the system is nearly compliant, requiring only user consent UI improvements."
+                },
+                "maintainability": {
+                    "score": 90.0,
+                    "interpretation": "Excellent - Clean architecture with good documentation",
+                    "how_calculated": "Based on code complexity, documentation quality, monitoring coverage, and deployment automation. Lower complexity scores higher.",
+                    "what_it_means": "The codebase is well-structured with clear separation of concerns. Comprehensive monitoring and automated deployments reduce operational burden.",
+                    "use_case": "Impacts long-term costs. High maintainability means faster feature development and easier troubleshooting, reducing engineering overhead."
+                }
+            },
+            "cost_breakdown": {
+                "model_inference": 18500.0,
+                "infrastructure": 15000.0,
+                "networking": 4500.0,
+                "storage": 2500.0,
+                "monitoring": 2000.0,
+                "total": 42500.0,
+                "components": {
+                    "BERT + Vision Transformer": 12000.0,
+                    "Neural Collaborative Filtering": 6500.0,
+                    "FastAPI Servers (4x)": 8000.0,
+                    "Redis Cache Cluster": 5000.0,
+                    "PostgreSQL Database": 2000.0,
+                    "Load Balancer": 1500.0,
+                    "CDN": 3000.0,
+                    "S3 Storage": 2500.0,
+                    "Prometheus + Grafana": 2000.0
+                },
+                "notes": "Costs optimized through Redis caching (60% cache hit rate) and efficient batch processing. Vision transformer runs on GPU instances for image embeddings."
+            }
         },
         "iterations": [
             {
@@ -1254,5 +1399,3 @@ def get_demo_scenario(domain: str):
 def get_all_demo_scenarios():
     """Get all available demo scenarios."""
     return list(DEMO_SCENARIOS.keys())
-
-# Made with Bob

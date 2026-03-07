@@ -8,7 +8,7 @@ import json
 import time
 from langchain_core.prompts import PromptTemplate
 from ..orchestration.state import MetaMindState, ReflectionFeedback
-from ..utils.llm_utils import create_llm_with_retry, invoke_llm_with_retry, parse_json_with_retry
+from ..utils.llm_utils import create_llm_from_env, invoke_llm_with_retry, parse_json_with_retry
 from ..utils.logging_config import AgentLogger
 from ..utils.validation import ReflectionOutput
 
@@ -32,15 +32,11 @@ class ReflectionAgent:
         Initialize the ReflectionAgent.
         
         Args:
-            ollama_base_url: Base URL for Ollama service
-            model_name: Name of the Ollama model to use
+            ollama_base_url: Base URL for Ollama service (fallback if env not set)
+            model_name: Name of the model to use (fallback if env not set)
         """
-        self.llm = create_llm_with_retry(
-            base_url=ollama_base_url,
-            model=model_name,
-            temperature=0.2,  # Moderate temperature for balanced critique
-            timeout=90
-        )
+        # Use environment-based LLM creation for seamless provider switching (Groq priority)
+        self.llm = create_llm_from_env(temperature=0.2, timeout=90)
         self.logger = AgentLogger("ReflectionAgent")
         
         self.prompt_template = PromptTemplate(
@@ -100,6 +96,10 @@ JSON Output:"""
         run_id = state.get("run_id", "unknown")
         version = state.get("version", 0)
         
+        # Initialize logger with run_id for streaming
+        if self.logger is None or self.logger.run_id != run_id:
+            self.logger = AgentLogger("ReflectionAgent", run_id=run_id)
+        
         try:
             self.logger.log_execution_start(run_id, version)
             
@@ -146,6 +146,18 @@ JSON Output:"""
             
             # Enhance reflection
             reflection = self._validate_reflection(reflection, metrics, state)
+            
+            # Add detailed score explanations
+            reflection["score_explanations"] = self._generate_score_explanations(metrics, selected_arch.get("final_score", 0))
+            
+            # Add cost breakdown if available
+            for sim_result in state.get("simulation_results", []):
+                if sim_result["architecture_id"] == arch_id:
+                    cost_breakdown = sim_result["raw_metrics"].get("cost_breakdown")
+                    if cost_breakdown:
+                        reflection["cost_breakdown"] = cost_breakdown
+                        self.logger.info(f"Added cost breakdown to reflection: Total ${cost_breakdown['total']}/month")
+                    break
             
             # Update state
             state["reflection_feedback"] = reflection
@@ -194,25 +206,84 @@ JSON Output:"""
     
     def _format_metrics(self, metrics: dict, final_score: float) -> str:
         """
-        Format metrics for display.
+        Format metrics for display with detailed explanations.
         
         Args:
             metrics: Metrics dict
             final_score: Final score
             
         Returns:
-            str: Formatted metrics
+            str: Formatted metrics with context
         """
         summary = f"Final Score: {final_score:.1f}/100\n\n"
-        summary += "Individual Metrics (0-100 scale):\n"
-        summary += f"- Cost: {metrics.get('cost', 0):.1f}\n"
-        summary += f"- Latency: {metrics.get('latency', 0):.1f}\n"
-        summary += f"- Risk: {metrics.get('risk', 0):.1f}\n"
-        summary += f"- Compliance: {metrics.get('compliance', 0):.1f}\n"
-        summary += f"- Scalability: {metrics.get('scalability', 0):.1f}\n"
-        summary += f"- Complexity: {metrics.get('complexity', 0):.1f}\n"
+        summary += "Individual Metrics (0-100 scale, higher is better):\n\n"
+        
+        # Cost metric with explanation
+        cost_score = metrics.get('cost', 0)
+        summary += f"- Cost: {cost_score:.1f}/100\n"
+        summary += f"  How calculated: Compares estimated monthly cost against budget constraint\n"
+        summary += f"  What it means: {self._get_score_interpretation(cost_score)}\n"
+        summary += f"  Use case: Ensures solution stays within budget while maximizing value\n\n"
+        
+        # Latency metric with explanation
+        latency_score = metrics.get('latency', 0)
+        summary += f"- Latency: {latency_score:.1f}/100\n"
+        summary += f"  How calculated: Compares P95 response time against latency target\n"
+        summary += f"  What it means: {self._get_score_interpretation(latency_score)}\n"
+        summary += f"  Use case: Critical for real-time applications and user experience\n\n"
+        
+        # Risk metric with explanation
+        risk_score = metrics.get('risk', 0)
+        summary += f"- Risk: {risk_score:.1f}/100\n"
+        summary += f"  How calculated: LLM-based assessment of security, reliability, and failure modes\n"
+        summary += f"  What it means: {self._get_score_interpretation(risk_score)}\n"
+        summary += f"  Use case: Ensures system resilience and data protection\n\n"
+        
+        # Compliance metric with explanation
+        compliance_score = metrics.get('compliance', 0)
+        summary += f"- Compliance: {compliance_score:.1f}/100\n"
+        summary += f"  How calculated: LLM-based evaluation against regulatory requirements (GDPR, HIPAA, etc.)\n"
+        summary += f"  What it means: {self._get_score_interpretation(compliance_score)}\n"
+        summary += f"  Use case: Critical for regulated industries (healthcare, finance, legal)\n\n"
+        
+        # Scalability metric with explanation
+        scalability_score = metrics.get('scalability', 0)
+        summary += f"- Scalability: {scalability_score:.1f}/100\n"
+        summary += f"  How calculated: Compares max concurrent users capacity against expected load\n"
+        summary += f"  What it means: {self._get_score_interpretation(scalability_score)}\n"
+        summary += f"  Use case: Ensures system can handle growth and traffic spikes\n\n"
+        
+        # Complexity metric with explanation
+        complexity_score = metrics.get('complexity', 0)
+        summary += f"- Complexity: {complexity_score:.1f}/100\n"
+        summary += f"  How calculated: Based on number of components, topology, and integration points\n"
+        summary += f"  What it means: {self._get_score_interpretation(complexity_score)}\n"
+        summary += f"  Use case: Lower complexity means faster implementation and easier maintenance\n"
         
         return summary
+    
+    def _get_score_interpretation(self, score: float) -> str:
+        """
+        Get human-readable interpretation of a score.
+        
+        Args:
+            score: Score value (0-100)
+            
+        Returns:
+            str: Interpretation text
+        """
+        if score >= 90:
+            return "Excellent - Exceeds requirements significantly"
+        elif score >= 80:
+            return "Very Good - Meets requirements with margin"
+        elif score >= 70:
+            return "Good - Meets requirements adequately"
+        elif score >= 60:
+            return "Acceptable - Meets minimum requirements"
+        elif score >= 50:
+            return "Below Target - May need optimization"
+        else:
+            return "Poor - Requires significant improvement"
     
     def _format_constraints(self, constraints: dict) -> str:
         """
@@ -311,7 +382,67 @@ JSON Output:"""
             strengths=["Architecture follows best practices"],
             weaknesses=["Unable to perform detailed analysis"],
             improvement_suggestions=["Manual review recommended"],
-            should_iterate=False
-        )
-
-# Made with Bob
+            should_iterate=False)
+    
+    def _generate_score_explanations(self, metrics: dict, final_score: float) -> dict:
+        """
+        Generate detailed explanations for each metric score.
+        
+        Args:
+            metrics: Architecture metrics
+            final_score: Final weighted score
+            
+        Returns:
+            dict: Detailed explanations for each metric
+        """
+        explanations = {
+            "overall": {
+                "score": final_score,
+                "interpretation": self._get_score_interpretation(final_score),
+                "description": "Weighted combination of all metrics based on domain priorities"
+            },
+            "cost": {
+                "score": metrics.get("cost", 0),
+                "interpretation": self._get_score_interpretation(metrics.get("cost", 0)),
+                "how_calculated": "Compares estimated monthly operational cost against budget constraint. Includes detailed breakdown: model inference (token usage × pricing), infrastructure (databases, caching, monitoring), storage (S3, vector DBs), and networking overhead (15% of base costs).",
+                "what_it_means": "Higher scores indicate better cost efficiency. Score of 100 means costs ≤70% of budget, 70-80 means within budget, below 60 means over budget. Check cost_breakdown field for detailed per-component costs.",
+                "use_case": "Critical for cost-sensitive projects. Detailed breakdown helps identify optimization opportunities (e.g., switching models, reducing infrastructure, optimizing storage)."
+            },
+            "latency": {
+                "score": metrics.get("latency", 0),
+                "interpretation": self._get_score_interpretation(metrics.get("latency", 0)),
+                "how_calculated": "Compares P95 response time against latency target. Factors in model inference time, database queries, network latency, and topology (parallel vs sequential).",
+                "what_it_means": "Higher scores indicate faster response times. Score of 100 means significantly faster than target, 70-80 meets target, below 60 exceeds target.",
+                "use_case": "Essential for real-time applications, user-facing systems, and time-sensitive operations. Directly impacts user experience."
+            },
+            "risk": {
+                "score": metrics.get("risk", 0),
+                "interpretation": self._get_score_interpretation(metrics.get("risk", 0)),
+                "how_calculated": "LLM-based assessment evaluating data security, model reliability, system availability, failure modes, and operational risks. Considers validation layers, monitoring, and redundancy.",
+                "what_it_means": "Higher scores indicate lower risk. Score of 100 means comprehensive risk mitigation, 70-80 means adequate safeguards, below 60 means significant vulnerabilities.",
+                "use_case": "Critical for production systems handling sensitive data or mission-critical operations. Ensures system resilience and business continuity."
+            },
+            "compliance": {
+                "score": metrics.get("compliance", 0),
+                "interpretation": self._get_score_interpretation(metrics.get("compliance", 0)),
+                "how_calculated": "LLM-based evaluation against regulatory requirements (GDPR, HIPAA, SOC2, etc.). Assesses data protection, audit trails, transparency, and industry-specific regulations.",
+                "what_it_means": "Higher scores indicate better regulatory alignment. Score of 100 means fully compliant, 70-80 means mostly compliant with minor gaps, below 60 means significant compliance issues.",
+                "use_case": "Mandatory for regulated industries (healthcare, finance, legal). Non-compliance can result in fines, legal issues, and reputational damage."
+            },
+            "scalability": {
+                "score": metrics.get("scalability", 0),
+                "interpretation": self._get_score_interpretation(metrics.get("scalability", 0)),
+                "how_calculated": "Compares maximum concurrent users capacity against expected load. Considers horizontal scaling (Kubernetes), caching (Redis), load balancing, and topology.",
+                "what_it_means": "Higher scores indicate better growth capacity. Score of 100 means 150%+ headroom, 70-80 means adequate capacity, below 60 means insufficient for expected load.",
+                "use_case": "Important for growing businesses and applications with variable traffic. Prevents performance degradation during peak usage."
+            },
+            "complexity": {
+                "score": metrics.get("complexity", 0),
+                "interpretation": self._get_score_interpretation(metrics.get("complexity", 0)),
+                "how_calculated": "Based on number of components, topology type (hierarchical adds complexity), integration points, and specialized technologies (Kubernetes, multi-agent systems).",
+                "what_it_means": "Higher scores indicate simpler implementation. Score of 100 means minimal complexity, 70-80 means moderate complexity, below 60 means high complexity requiring specialized expertise.",
+                "use_case": "Affects development time, maintenance costs, and team skill requirements. Simpler systems are faster to deploy and easier to debug."
+            }
+        }
+        
+        return explanations

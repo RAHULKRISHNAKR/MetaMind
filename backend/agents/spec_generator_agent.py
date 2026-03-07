@@ -6,7 +6,7 @@ This LLM-based agent creates production-ready specifications and reports.
 
 from langchain_core.prompts import PromptTemplate
 from ..orchestration.state import MetaMindState
-from ..utils.llm_utils import create_llm_with_retry, invoke_llm_with_retry
+from ..utils.llm_utils import create_llm_from_env, invoke_llm_with_retry
 from ..utils.logging_config import AgentLogger
 
 
@@ -26,15 +26,11 @@ class SpecGeneratorAgent:
         Initialize the SpecGeneratorAgent.
         
         Args:
-            ollama_base_url: Base URL for Ollama service
-            model_name: Name of the Ollama model to use
+            ollama_base_url: Base URL for Ollama service (fallback if env not set)
+            model_name: Name of the model to use (fallback if env not set)
         """
-        self.llm = create_llm_with_retry(
-            base_url=ollama_base_url,
-            model=model_name,
-            temperature=0.2,  # Moderate temperature for creative but structured output
-            timeout=120  # Longer timeout for documentation generation
-        )
+        # Use environment-based LLM creation for seamless provider switching (Groq priority)
+        self.llm = create_llm_from_env(temperature=0.2, timeout=120)
         self.logger = AgentLogger("SpecGeneratorAgent")
         
         self.exec_summary_prompt = PromptTemplate(
@@ -147,6 +143,11 @@ Monitoring Strategy:"""
             MetaMindState: Updated state with generated specifications
         """
         try:
+            # Initialize logger with run_id for streaming
+            run_id = state.get("run_id", "unknown")
+            if self.logger is None or self.logger.run_id != run_id:
+                self.logger = AgentLogger("SpecGeneratorAgent", run_id=run_id)
+            
             self.logger.info("Starting specification generation")
             selected_arch = state.get("selected_architecture")
             
@@ -417,5 +418,3 @@ Review the technical specification and deployment plan for implementation detail
 - Database connectivity
 - Model responsiveness
 """
-
-# Made with Bob

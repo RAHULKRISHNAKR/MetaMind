@@ -7,7 +7,6 @@ This LLM-based agent creates 3-5 distinct architecture candidates using predefin
 import json
 import uuid
 from typing import List
-from langchain_community.llms import Ollama
 from langchain_core.prompts import PromptTemplate
 from ..orchestration.state import (
     MetaMindState,
@@ -16,6 +15,8 @@ from ..orchestration.state import (
     ARCHITECTURE_TEMPLATES
 )
 from .architecture_components import validate_component, get_default_component
+from ..utils.llm_utils import create_llm_from_env
+from ..utils.logging_config import AgentLogger
 
 
 class ArchitectureGenerationAgent:
@@ -31,14 +32,12 @@ class ArchitectureGenerationAgent:
         Initialize the ArchitectureGenerationAgent.
         
         Args:
-            ollama_base_url: Base URL for Ollama service
-            model_name: Name of the Ollama model to use
+            ollama_base_url: Base URL for Ollama service (fallback if env not set)
+            model_name: Name of the model to use (fallback if env not set)
         """
-        self.llm = Ollama(
-            base_url=ollama_base_url,
-            model=model_name,
-            temperature=0.1
-        )
+        # Use environment-based LLM creation for seamless provider switching (Groq priority)
+        self.llm = create_llm_from_env(temperature=0.1, timeout=90)
+        self.logger = AgentLogger("ArchitectureGenerationAgent")
         
         self.prompt_template = PromptTemplate(
             input_variables=["business_goal", "domain", "modalities", "budget", "latency", "users", "risk", "compliance", "templates"],
@@ -215,6 +214,13 @@ Output ONLY a valid JSON array. No markdown, no explanation, no preamble. Each a
             MetaMindState: Updated state with candidate architectures
         """
         try:
+            # Initialize logger with run_id for streaming
+            run_id = state.get("run_id", "unknown")
+            if self.logger is None or self.logger.run_id != run_id:
+                self.logger = AgentLogger("ArchitectureGenerationAgent", run_id=run_id)
+            
+            self.logger.info("🎨 Generating architecture candidates...")
+            
             # Prepare templates list
             templates_str = "\n".join([f"- {t}" for t in ARCHITECTURE_TEMPLATES])
             
@@ -256,13 +262,14 @@ Output ONLY a valid JSON array. No markdown, no explanation, no preamble. Each a
             # Update state
             state["candidate_architectures"] = architectures
             
-            print(f"✓ Generated {len(architectures)} candidate architectures:")
+            self.logger.info(f"✅ Generated {len(architectures)} candidate architectures")
             for i, arch in enumerate(architectures, 1):
-                print(f"  {i}. {arch['name']} ({arch['template']})")
+                self.logger.info(f"  {i}. {arch['name']} ({arch['template']})")
         
         except Exception as e:
             error_msg = f"ArchitectureGenerationAgent failed: {str(e)}"
-            print(f"✗ {error_msg}")
+            if self.logger:
+                self.logger.error(f"❌ {error_msg}")
             state["errors"].append(error_msg)
             # Generate fallback architectures
             state["candidate_architectures"] = self._generate_fallback_architectures(state)
@@ -452,7 +459,8 @@ Output ONLY a valid JSON array. No markdown, no explanation, no preamble. Each a
         Returns:
             List[Architecture]: Fallback architectures
         """
-        print("⚠ Generating fallback architectures...")
+        if self.logger:
+            self.logger.warning("⚠️ Generating fallback architectures...")
         
         fallback_archs = []
         

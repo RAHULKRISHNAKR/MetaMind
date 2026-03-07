@@ -259,5 +259,3 @@ def validate_reflection(reflection: Dict[str, Any]) -> tuple[bool, List[str]]:
         errors.append(f"Invalid reflection: {str(e)}")
     
     return len(errors) == 0, errors
-
-# Made with Bob

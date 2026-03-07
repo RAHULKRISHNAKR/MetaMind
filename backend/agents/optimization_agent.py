@@ -209,5 +209,3 @@ class OptimizationAgent:
             summary += f"Risk={metrics.get('risk', 0):.0f}\n\n"
         
         return summary
-
-# Made with Bob

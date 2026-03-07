@@ -12,9 +12,10 @@ from ..orchestration.state import (
     MetaMindState,
     Architecture,
     RawMetrics,
-    SimulationResult
+    SimulationResult,
+    CostBreakdown
 )
-from ..utils.llm_utils import create_llm_with_retry, invoke_llm_with_retry, parse_json_with_retry
+from ..utils.llm_utils import create_llm_from_env, invoke_llm_with_retry, parse_json_with_retry
 from ..utils.logging_config import AgentLogger
 
 
@@ -63,15 +64,11 @@ class SimulationAgent:
         Initialize the SimulationAgent.
         
         Args:
-            ollama_base_url: Base URL for Ollama service
-            model_name: Name of the Ollama model to use
+            ollama_base_url: Base URL for Ollama service (fallback if env not set)
+            model_name: Name of the model to use (fallback if env not set)
         """
-        self.llm = create_llm_with_retry(
-            base_url=ollama_base_url,
-            model=model_name,
-            temperature=0.2,  # Low temperature for consistent assessment
-            timeout=90
-        )
+        # Use environment-based LLM creation for seamless provider switching (Groq priority)
+        self.llm = create_llm_from_env(temperature=0.2, timeout=90)
         self.logger = AgentLogger("SimulationAgent")
         
         self.risk_prompt = PromptTemplate(
@@ -139,6 +136,11 @@ JSON Output:"""
             MetaMindState: Updated state with simulation results
         """
         try:
+            # Initialize logger with run_id for streaming
+            run_id = state.get("run_id", "unknown")
+            if self.logger is None or self.logger.run_id != run_id:
+                self.logger = AgentLogger("SimulationAgent", run_id=run_id)
+            
             candidates = state.get("candidate_architectures", [])
             
             if not candidates:
@@ -191,8 +193,8 @@ JSON Output:"""
         """
         constraints = state["constraints"]
         
-        # Estimate cost
-        cost = self._estimate_cost(architecture, constraints)
+        # Estimate cost with detailed breakdown
+        cost, cost_breakdown = self._estimate_cost(architecture, constraints)
         
         # Estimate latency
         latency = self._estimate_latency(architecture, constraints)
@@ -211,6 +213,7 @@ JSON Output:"""
         
         return RawMetrics(
             estimated_monthly_cost=cost,
+            cost_breakdown=cost_breakdown,
             p95_latency_ms=latency,
             risk_score=risk_score,
             compliance_score=compliance_score,
@@ -218,19 +221,17 @@ JSON Output:"""
             implementation_complexity=complexity
         )
     
-    def _estimate_cost(self, architecture: Architecture, constraints: Dict) -> float:
+    def _estimate_cost(self, architecture: Architecture, constraints: Dict) -> tuple[float, CostBreakdown]:
         """
-        Estimate monthly cost.
+        Estimate monthly cost with detailed breakdown.
         
         Args:
             architecture: Architecture specification
             constraints: System constraints
             
         Returns:
-            float: Estimated monthly cost in USD
+            tuple: (total_cost, cost_breakdown)
         """
-        total_cost = 0.0
-        
         # Model costs (based on expected usage)
         expected_users = constraints["expected_users"]
         avg_requests_per_user = 100  # per month
@@ -239,30 +240,66 @@ JSON Output:"""
         total_tokens = expected_users * avg_requests_per_user * avg_tokens_per_request
         total_tokens_k = total_tokens / 1000
         
-        # Find model in modules
+        # Find model in modules and calculate inference cost
         model_cost_per_k = 0.0001  # default
+        model_name_used = "default"
         for module in architecture["modules"]:
             if module["layer"] == "Model Layer":
                 component = module["component"].lower()
                 for model_name, cost in self.MODEL_COSTS.items():
                     if model_name in component:
                         model_cost_per_k = cost
+                        model_name_used = model_name
                         break
         
-        model_cost = total_tokens_k * model_cost_per_k
-        total_cost += model_cost
+        model_inference_cost = round(total_tokens_k * model_cost_per_k, 2)
         
-        # Infrastructure costs
+        # Infrastructure costs - track per component
+        component_costs = {}
+        infrastructure_total = 0.0
+        
         for module in architecture["modules"]:
             component = module["component"].lower()
             for infra_name, cost in self.INFRA_COSTS.items():
                 if infra_name in component:
-                    total_cost += cost
+                    component_costs[infra_name] = cost
+                    infrastructure_total += cost
         
-        # Add 20% overhead for networking, storage, etc.
-        total_cost *= 1.2
+        # Calculate storage costs (estimated based on data layer components)
+        storage_cost = 0.0
+        for module in architecture["modules"]:
+            if module["layer"] == "Data Layer":
+                component = module["component"].lower()
+                if "s3" in component or "storage" in component:
+                    storage_cost += 25  # Base S3 cost
+                if "vector" in component or "chromadb" in component or "pinecone" in component:
+                    storage_cost += 50  # Vector DB storage
+                if "postgresql" in component or "mongodb" in component:
+                    storage_cost += 30  # Database storage
         
-        return round(total_cost, 2)
+        # Calculate networking costs (15% of model + infrastructure)
+        base_cost = model_inference_cost + infrastructure_total
+        networking_cost = round(base_cost * 0.15, 2)
+        
+        # Total cost
+        total_cost = model_inference_cost + infrastructure_total + storage_cost + networking_cost
+        
+        # Create detailed breakdown
+        cost_breakdown = CostBreakdown(
+            model_inference=model_inference_cost,
+            infrastructure=round(infrastructure_total, 2),
+            networking=networking_cost,
+            storage=round(storage_cost, 2),
+            total=round(total_cost, 2),
+            components={
+                f"Model ({model_name_used})": model_inference_cost,
+                **{f"{k.capitalize()}": v for k, v in component_costs.items()},
+                "Storage": round(storage_cost, 2),
+                "Networking": networking_cost
+            }
+        )
+        
+        return round(total_cost, 2), cost_breakdown
     
     def _estimate_latency(self, architecture: Architecture, constraints: Dict) -> int:
         """
@@ -473,6 +510,3 @@ JSON Output:"""
         
         # Clamp to 1-10
         return max(1, min(10, complexity))
-    
-
-# Made with Bob

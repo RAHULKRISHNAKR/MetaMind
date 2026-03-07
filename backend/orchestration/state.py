@@ -48,9 +48,20 @@ class Weights(TypedDict):
     complexity: float
 
 
+class CostBreakdown(TypedDict):
+    """Detailed cost breakdown for architecture."""
+    model_inference: float  # Cost of LLM inference per month
+    infrastructure: float  # Databases, caching, monitoring
+    networking: float  # Data transfer, API calls
+    storage: float  # S3, database storage
+    total: float  # Total monthly cost
+    components: Dict[str, float]  # Per-component costs
+
+
 class RawMetrics(TypedDict):
     """Raw simulation metrics before normalization."""
     estimated_monthly_cost: float
+    cost_breakdown: CostBreakdown  # Detailed cost breakdown
     p95_latency_ms: int
     risk_score: float  # 0-100
     compliance_score: float  # 0-100

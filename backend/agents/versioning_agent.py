@@ -340,5 +340,3 @@ class VersioningAgent:
             rows = cursor.fetchall()
             
             return [dict(row) for row in rows]
-
-# Made with Bob

@@ -364,9 +364,117 @@ export function Results() {
                   </div>
                 )}
 
+                {/* Score Explanations Section */}
+                {result.reflection.score_explanations && (
+                  <div className="p-5 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-lg">
+                    <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                      📊 Score Explanations & Context
+                    </h3>
+                    <div className="space-y-4">
+                      {Object.entries(result.reflection.score_explanations).map(([key, explanation]) => (
+                        <details key={key} className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                          <summary className="cursor-pointer p-4 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <span className="text-lg font-semibold capitalize">{key.replace(/_/g, ' ')}</span>
+                                <span className="text-2xl font-bold text-primary">{explanation.score.toFixed(1)}</span>
+                              </div>
+                              <span className="text-sm font-medium px-3 py-1 rounded-full bg-primary/10 text-primary">
+                                {explanation.interpretation}
+                              </span>
+                            </div>
+                          </summary>
+                          <div className="p-4 pt-0 space-y-3 border-t border-slate-200 dark:border-slate-700">
+                            <div>
+                              <h4 className="font-semibold text-sm text-slate-600 dark:text-slate-400 mb-1">How It's Calculated:</h4>
+                              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{explanation.how_calculated}</p>
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-sm text-slate-600 dark:text-slate-400 mb-1">What It Means:</h4>
+                              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{explanation.what_it_means}</p>
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-sm text-slate-600 dark:text-slate-400 mb-1">Use Case:</h4>
+                              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{explanation.use_case}</p>
+                            </div>
+                          </div>
+                        </details>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Cost Breakdown Section */}
+                {result.reflection.cost_breakdown && (
+                  <div className="p-5 bg-emerald-50 dark:bg-emerald-950 border-2 border-emerald-200 dark:border-emerald-800 rounded-lg">
+                    <h3 className="text-xl font-bold mb-4 text-emerald-900 dark:text-emerald-100 flex items-center gap-2">
+                      💰 Cost Breakdown
+                    </h3>
+                    <div className="space-y-4">
+                      {/* Summary */}
+                      <div className="bg-white dark:bg-emerald-900 p-4 rounded-lg border border-emerald-200 dark:border-emerald-700">
+                        <div className="flex items-center justify-between mb-4">
+                          <span className="text-lg font-semibold">Total Monthly Cost</span>
+                          <span className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                            ${result.reflection.cost_breakdown.total.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                          <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-800 rounded">
+                            <div className="text-xs text-slate-600 dark:text-slate-400">Model Inference</div>
+                            <div className="text-sm font-bold">${result.reflection.cost_breakdown.model_inference.toLocaleString()}</div>
+                          </div>
+                          <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-800 rounded">
+                            <div className="text-xs text-slate-600 dark:text-slate-400">Infrastructure</div>
+                            <div className="text-sm font-bold">${result.reflection.cost_breakdown.infrastructure.toLocaleString()}</div>
+                          </div>
+                          <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-800 rounded">
+                            <div className="text-xs text-slate-600 dark:text-slate-400">Networking</div>
+                            <div className="text-sm font-bold">${result.reflection.cost_breakdown.networking.toLocaleString()}</div>
+                          </div>
+                          <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-800 rounded">
+                            <div className="text-xs text-slate-600 dark:text-slate-400">Storage</div>
+                            <div className="text-sm font-bold">${result.reflection.cost_breakdown.storage.toLocaleString()}</div>
+                          </div>
+                          {result.reflection.cost_breakdown.monitoring && (
+                            <div className="text-center p-2 bg-emerald-50 dark:bg-emerald-800 rounded">
+                              <div className="text-xs text-slate-600 dark:text-slate-400">Monitoring</div>
+                              <div className="text-sm font-bold">${result.reflection.cost_breakdown.monitoring.toLocaleString()}</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Component Breakdown */}
+                      <div className="bg-white dark:bg-emerald-900 p-4 rounded-lg border border-emerald-200 dark:border-emerald-700">
+                        <h4 className="font-semibold mb-3">Cost by Component</h4>
+                        <div className="space-y-2">
+                          {Object.entries(result.reflection.cost_breakdown.components).map(([component, cost]) => (
+                            <div key={component} className="flex items-center justify-between py-2 border-b border-emerald-100 dark:border-emerald-800 last:border-0">
+                              <span className="text-sm text-slate-700 dark:text-slate-300">{component}</span>
+                              <span className="text-sm font-semibold">${typeof cost === 'number' ? cost.toLocaleString() : cost}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Notes */}
+                      {result.reflection.cost_breakdown.notes && (
+                        <div className="bg-emerald-100 dark:bg-emerald-900 p-3 rounded-lg border border-emerald-200 dark:border-emerald-700">
+                          <p className="text-sm text-slate-700 dark:text-slate-300 italic">
+                            <span className="font-semibold">Note:</span> {result.reflection.cost_breakdown.notes}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {(!result.reflection.strengths || result.reflection.strengths.length === 0) &&
                  (!result.reflection.weaknesses || result.reflection.weaknesses.length === 0) &&
-                 (!result.reflection.improvement_suggestions || result.reflection.improvement_suggestions.length === 0) && (
+                 (!result.reflection.improvement_suggestions || result.reflection.improvement_suggestions.length === 0) &&
+                 !result.reflection.score_explanations &&
+                 !result.reflection.cost_breakdown && (
                   <div className="text-center py-12 text-muted-foreground">
                     <p className="text-lg">No reflection data available</p>
                   </div>

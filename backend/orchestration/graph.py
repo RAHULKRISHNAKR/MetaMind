@@ -44,12 +44,14 @@ class MetaMindOrchestrator:
         Initialize the orchestrator with all agents.
         
         Args:
-            ollama_base_url: Base URL for Ollama service
-            model_name: Name of the Ollama model to use
+            ollama_base_url: Base URL for Ollama service (deprecated, kept for backward compatibility)
+            model_name: Name of the model to use (deprecated, kept for backward compatibility)
             db_path: Path to SQLite database
+        
+        Note: LLM provider is now configured via environment variables (see .env.example).
+        The ollama_base_url and model_name parameters are kept for backward compatibility
+        but are no longer used. Configure LLM_PROVIDER, GROQ_API_KEY, etc. in .env instead.
         """
-        self.ollama_base_url = ollama_base_url
-        self.model_name = model_name
         self.db_path = db_path
         
         # Initialize agents (will be implemented in separate files)
@@ -59,8 +61,13 @@ class MetaMindOrchestrator:
         self.graph = self._build_graph()
     
     def _initialize_agents(self):
-        """Initialize all agent instances."""
-        # Import agents (to be implemented)
+        """
+        Initialize all agent instances.
+        
+        Note: Agents now use environment-based LLM configuration.
+        Set LLM_PROVIDER, GROQ_API_KEY, etc. in .env file.
+        """
+        # Import agents
         from ..agents import (
             RequirementAgent,
             DomainWeightTuningAgent,
@@ -75,45 +82,18 @@ class MetaMindOrchestrator:
             SpecGeneratorAgent
         )
         
-        self.requirement_agent = RequirementAgent(
-            ollama_base_url=self.ollama_base_url,
-            model_name=self.model_name
-        )
-        
+        # Initialize agents - they will use environment-based LLM configuration
+        self.requirement_agent = RequirementAgent()
         self.weight_tuning_agent = DomainWeightTuningAgent()
-        
-        self.architecture_generation_agent = ArchitectureGenerationAgent(
-            ollama_base_url=self.ollama_base_url,
-            model_name=self.model_name
-        )
-        
-        self.simulation_agent = SimulationAgent(
-            ollama_base_url=self.ollama_base_url,
-            model_name=self.model_name
-        )
-        
+        self.architecture_generation_agent = ArchitectureGenerationAgent()
+        self.simulation_agent = SimulationAgent()
         self.scoring_engine = DeterministicScoringEngine()
-        
         self.optimization_agent = OptimizationAgent()
-        
-        self.reflection_agent = ReflectionAgent(
-            ollama_base_url=self.ollama_base_url,
-            model_name=self.model_name
-        )
-        
-        self.iteration_agent = IterationAgent(
-            ollama_base_url=self.ollama_base_url,
-            model_name=self.model_name
-        )
-        
+        self.reflection_agent = ReflectionAgent()
+        self.iteration_agent = IterationAgent()
         self.versioning_agent = VersioningAgent(db_path=self.db_path)
-        
         self.comparison_agent = ComparisonAgent()
-        
-        self.spec_generator_agent = SpecGeneratorAgent(
-            ollama_base_url=self.ollama_base_url,
-            model_name=self.model_name
-        )
+        self.spec_generator_agent = SpecGeneratorAgent()
     
     def _build_graph(self) -> StateGraph:
         """
@@ -487,5 +467,3 @@ def create_orchestrator(
         model_name=model_name,
         db_path=db_path
     )
-
-# Made with Bob

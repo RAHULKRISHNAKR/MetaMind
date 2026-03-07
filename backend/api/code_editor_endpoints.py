@@ -345,5 +345,3 @@ async def get_project_diff(project_id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get diff: {str(e)}")
-
-# Made with Bob

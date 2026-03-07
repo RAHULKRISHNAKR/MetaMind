@@ -264,7 +264,7 @@ def create_llm_from_env(**kwargs):
     Create LLM instance based on environment variables.
     
     Reads LLM_PROVIDER from environment and creates appropriate instance.
-    Supports: ollama (default), xai, openai, anthropic
+    Supports: groq (default), ollama, xai, openai, anthropic
     
     Args:
         **kwargs: Additional arguments (temperature, timeout, etc.)
@@ -273,7 +273,12 @@ def create_llm_from_env(**kwargs):
         LLM instance configured based on environment
         
     Environment Variables:
-        LLM_PROVIDER: Provider to use (ollama, xai, openai, anthropic)
+        LLM_PROVIDER: Provider to use (groq, ollama, xai, openai, anthropic)
+        
+        For Groq:
+            GROQ_API_KEY: API key
+            GROQ_MODEL: Model name (default: llama-3.1-70b-versatile)
+            GROQ_BASE_URL: Base URL (default: https://api.groq.com/openai/v1)
         
         For Ollama:
             OLLAMA_BASE_URL: Base URL (default: http://localhost:11434)
@@ -292,13 +297,32 @@ def create_llm_from_env(**kwargs):
             ANTHROPIC_API_KEY: API key
             ANTHROPIC_MODEL: Model name (default: claude-3-opus-20240229)
     """
-    provider = os.getenv("LLM_PROVIDER", "ollama").lower()
+    provider = os.getenv("LLM_PROVIDER", "groq").lower()
     temperature = kwargs.get("temperature", 0.7)
     timeout = kwargs.get("timeout", 120)
     
     logger.info(f"Creating LLM with provider: {provider}")
     
-    if provider == "xai":
+    if provider == "groq":
+        try:
+            from langchain_openai import ChatOpenAI
+        except ImportError:
+            raise ImportError("langchain-openai not installed. Run: pip install langchain-openai")
+        
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            raise ValueError("GROQ_API_KEY environment variable not set")
+        
+        return ChatOpenAI(
+            api_key=api_key,
+            base_url=os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1"),
+            model=os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile"),
+            temperature=temperature,
+            timeout=timeout,
+            max_retries=3
+        )
+    
+    elif provider == "xai":
         try:
             from langchain_openai import ChatOpenAI
         except ImportError:
@@ -369,7 +393,7 @@ def get_provider_info() -> dict:
     Returns:
         dict: Provider information
     """
-    provider = os.getenv("LLM_PROVIDER", "ollama").lower()
+    provider = os.getenv("LLM_PROVIDER", "groq").lower()
     
     info = {
         "provider": provider,
@@ -377,7 +401,10 @@ def get_provider_info() -> dict:
         "base_url": None
     }
     
-    if provider == "xai":
+    if provider == "groq":
+        info["model"] = os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile")
+        info["base_url"] = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
+    elif provider == "xai":
         info["model"] = os.getenv("XAI_MODEL", "grok-beta")
         info["base_url"] = os.getenv("XAI_BASE_URL", "https://api.x.ai/v1")
     elif provider == "openai":
@@ -391,6 +418,3 @@ def get_provider_info() -> dict:
         info["base_url"] = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     
     return info
-
-
-# Made with Bob

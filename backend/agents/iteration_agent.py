@@ -6,9 +6,10 @@ This hybrid agent modifies architectures using rule-based improvements and LLM g
 
 import copy
 from typing import List
-from langchain_community.llms import Ollama
 from langchain_core.prompts import PromptTemplate
 from ..orchestration.state import MetaMindState, Architecture, ArchitectureModule
+from ..utils.llm_utils import create_llm_from_env
+from ..utils.logging_config import AgentLogger
 
 
 class IterationAgent:
@@ -26,14 +27,12 @@ class IterationAgent:
         Initialize the IterationAgent.
         
         Args:
-            ollama_base_url: Base URL for Ollama service
-            model_name: Name of the Ollama model to use
+            ollama_base_url: Base URL for Ollama service (fallback if env not set)
+            model_name: Name of the model to use (fallback if env not set)
         """
-        self.llm = Ollama(
-            base_url=ollama_base_url,
-            model=model_name,
-            temperature=0.1
-        )
+        # Use environment-based LLM creation for seamless provider switching
+        self.llm = create_llm_from_env(temperature=0.1, timeout=90)
+        self.logger = AgentLogger("IterationAgent")
     
     def execute(self, state: MetaMindState) -> MetaMindState:
         """
@@ -46,6 +45,13 @@ class IterationAgent:
             MetaMindState: Updated state with improved architecture
         """
         try:
+            # Initialize logger with run_id for streaming
+            run_id = state.get("run_id", "unknown")
+            if self.logger is None or self.logger.run_id != run_id:
+                self.logger = AgentLogger("IterationAgent", run_id=run_id)
+            
+            self.logger.info("🔄 Applying improvements to architecture...")
+            
             selected_arch = state.get("selected_architecture")
             reflection = state.get("reflection_feedback")
             
@@ -70,16 +76,17 @@ class IterationAgent:
             state["candidate_architectures"] = [improved_arch]
             
             # Track changes
-            print(f"✓ Applied {len(changes_made)} improvements:")
+            self.logger.info(f"✅ Applied {len(changes_made)} improvements")
             for change in changes_made:
-                print(f"  - {change}")
+                self.logger.info(f"  • {change}")
             
             # Store changes for version history
             state["_iteration_changes"] = changes_made
         
         except Exception as e:
             error_msg = f"IterationAgent failed: {str(e)}"
-            print(f"✗ {error_msg}")
+            if self.logger:
+                self.logger.error(f"❌ {error_msg}")
             state["errors"].append(error_msg)
         
         return state
@@ -417,5 +424,3 @@ class IterationAgent:
             return self._add_load_balancing(architecture)
         
         return False
-
-# Made with Bob
