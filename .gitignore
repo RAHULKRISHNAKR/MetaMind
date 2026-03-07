@@ -73,3 +73,7 @@ logs/
 # OS
 Thumbs.db
 .DS_Store
+
+
+#folder
+generated_projects
