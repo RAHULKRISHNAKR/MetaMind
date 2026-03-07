@@ -607,7 +607,7 @@ File content will be populated based on your architecture design.
   }
 
   const renderFileTree = (nodes: FileNode[], level: number = 0): ReactElement[] => {
-    return nodes.map((node, index) => (
+    return nodes.map((node) => (
       <div key={node.path} style={{ marginLeft: `${level * 16}px` }}>
         {node.type === 'folder' ? (
           <div>

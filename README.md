@@ -7,6 +7,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0-009688.svg)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18.3.1-61DAFB.svg)](https://reactjs.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-Ready-326CE5.svg)](https://kubernetes.io/)
 
 MetaMind is a cutting-edge **multi-agent AI system** that autonomously designs, simulates, optimizes, and iteratively improves AI pipelines under real-world constraints. It combines LLM reasoning with deterministic scoring to create production-ready AI architectures.
 
@@ -19,14 +20,40 @@ MetaMind is a cutting-edge **multi-agent AI system** that autonomously designs, 
 📊 **Deterministic Scoring** - 6 metrics (Cost, Latency, Risk, Compliance, Scalability, Complexity)  
 🔄 **Self-Improvement Loop** - Automatic reflection and iterative refinement  
 💻 **Production-Ready Code** - Generate complete applications with Docker, monitoring, and docs  
-🎨 **Modern React UI** - Beautiful interface with Monaco Editor integration  
-🚀 **Demo Mode** - Instant results for presentations and testing  
+🎨 **Modern React UI** - Beautiful interface with Monaco Editor integration
+🚀 **Demo Mode** - Instant results for presentations and testing
+☸️ **Kubernetes Ready** - Production-grade K8s manifests with automated deployment
 
 ---
 
 ## 🚀 Quick Start
 
-### Option 1: Docker (Recommended)
+### Option 1: Kubernetes (Production-Ready)
+
+```bash
+# Prerequisites: Docker, Minikube/K8s cluster, kubectl
+# Get your free API key from https://console.groq.com/
+
+# Clone repository
+git clone https://github.com/yourusername/metamind.git
+cd metamind
+
+# Configure API key
+nano k8s/secret.yaml
+# Replace 'your-groq-api-key-here' with your actual key
+
+# Deploy to Kubernetes
+cd k8s
+./deploy.sh
+
+# Access the application
+kubectl port-forward -n metamind svc/metamind-frontend-react 8080:80
+# Visit: http://localhost:8080
+```
+
+**📚 Complete Kubernetes Guide**: See [`k8s/QUICKSTART.md`](k8s/QUICKSTART.md) for detailed instructions
+
+### Option 2: Docker Compose (Quick Testing)
 
 ```bash
 # Clone repository
@@ -298,6 +325,57 @@ docker-compose -f docker-compose.prod.yml down
 
 ---
 
+## ☸️ Kubernetes Deployment
+
+MetaMind is fully ready for Kubernetes deployment with production-grade manifests!
+
+### Quick Start (Minikube)
+
+```bash
+# Start Minikube
+minikube start --cpus=4 --memory=8192
+
+# Configure your API key
+nano k8s/secret.yaml
+
+# Deploy everything
+cd k8s
+./deploy.sh
+
+# Access the application
+kubectl port-forward -n metamind svc/metamind-frontend-react 8080:80
+```
+
+Then visit: **http://localhost:8080**
+
+### Documentation
+
+- **[⚡ Quick Start Guide](k8s/QUICKSTART.md)** - Get started in 5 minutes!
+- **[📖 Complete Deployment Guide](k8s/README.md)** - Detailed instructions
+- **[🚀 Kubernetes Overview](KUBERNETES_DEPLOYMENT.md)** - Architecture and best practices
+
+### What's Included
+
+✅ **Production-ready manifests** for all services
+✅ **Automated deployment script** with health checks
+✅ **ConfigMaps and Secrets** for configuration
+✅ **PersistentVolume** for database storage
+✅ **Ingress** configuration for external access
+✅ **Resource limits** and health probes
+✅ **Horizontal scaling** support
+✅ **Complete documentation** for beginners
+
+### Cloud Deployment
+
+Works with:
+- **Google Kubernetes Engine (GKE)**
+- **Amazon Elastic Kubernetes Service (EKS)**
+- **Azure Kubernetes Service (AKS)**
+- **DigitalOcean Kubernetes**
+- **Any Kubernetes 1.19+ cluster**
+
+---
+
 ## 📊 Performance
 
 - **Design Generation**: 2-5 minutes per architecture
@@ -356,7 +434,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] Demo mode with instant results
 - [x] Production-ready code generation
 - [x] Docker deployment
-- [ ] Kubernetes support
+- [x] Kubernetes support
 - [ ] Authentication & authorization
 - [ ] PostgreSQL support
 - [ ] Redis caching

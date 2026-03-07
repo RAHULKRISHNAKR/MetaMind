@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metamind-config
+  namespace: metamind
+data:
+  # LLM Provider Configuration
+  LLM_PROVIDER: "groq"
+  GROQ_MODEL: "llama-3.1-70b-versatile"
+  GROQ_BASE_URL: "https://api.groq.com/openai/v1"
+  
+  # Ollama Configuration (for local deployment)
+  OLLAMA_BASE_URL: "http://localhost:11434"
+  OLLAMA_MODEL: "llama3"
+  
+  # Database Configuration
+  DB_PATH: "/app/data/metamind.db"
+  
+  # API Configuration
+  PORT: "8000"
+  
+  # Application Settings
+  MAX_ITERATIONS: "5"
+  CONFIDENCE_THRESHOLD: "0.85"
+  
+  # Backend URL for frontend
+  BACKEND_URL: "http://metamind-backend:8000"

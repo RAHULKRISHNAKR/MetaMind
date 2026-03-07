@@ -1,0 +1,42 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: metamind-ingress
+  namespace: metamind
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: metamind.local
+    http:
+      paths:
+      # React Frontend (main UI)
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: metamind-frontend-react
+            port:
+              number: 80
+      # Backend API
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: metamind-backend
+            port:
+              number: 8000
+      # Streamlit Frontend (alternative UI)
+      - path: /streamlit
+        pathType: Prefix
+        backend:
+          service:
+            name: metamind-frontend-streamlit
+            port:
+              number: 8501

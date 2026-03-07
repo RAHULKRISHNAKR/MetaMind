@@ -14,9 +14,6 @@ export function Editor() {
   const [projectId, setProjectId] = useState<string | null>(null)
   const [generatedFiles, setGeneratedFiles] = useState<string[]>([])
   const [showFiles, setShowFiles] = useState(false)
-  const [selectedFile, setSelectedFile] = useState<string | null>(null)
-  const [fileContent, setFileContent] = useState<string>('')
-  const [isEditing, setIsEditing] = useState(false)
   const [showEditor, setShowEditor] = useState(false)
 
   const handleGenerateCode = async () => {

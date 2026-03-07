@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metamind-backend
+  namespace: metamind
+  labels:
+    app: metamind
+    component: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: metamind
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: metamind
+        component: backend
+    spec:
+      containers:
+      - name: backend
+        image: metamind-backend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: metamind-config
+              key: PORT
+        - name: DB_PATH
+          valueFrom:
+            configMapKeyRef:
+              name: metamind-config
+              key: DB_PATH
+        - name: LLM_PROVIDER
+          valueFrom:
+            configMapKeyRef:
+              name: metamind-config
+              key: LLM_PROVIDER
+        - name: GROQ_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: metamind-secrets
+              key: GROQ_API_KEY
+        - name: GROQ_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: metamind-config
+              key: GROQ_MODEL
+        - name: GROQ_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: metamind-config
+              key: GROQ_BASE_URL
+        - name: OLLAMA_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: metamind-config
+              key: OLLAMA_BASE_URL
+        - name: OLLAMA_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: metamind-config
+              key: OLLAMA_MODEL
+        - name: MAX_ITERATIONS
+          valueFrom:
+            configMapKeyRef:
+              name: metamind-config
+              key: MAX_ITERATIONS
+        - name: CONFIDENCE_THRESHOLD
+          valueFrom:
+            configMapKeyRef:
+              name: metamind-config
+              key: CONFIDENCE_THRESHOLD
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: metamind-pvc

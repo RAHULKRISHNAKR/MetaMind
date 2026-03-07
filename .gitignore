@@ -78,3 +78,5 @@ Thumbs.db
 #folder
 generated_projects/
 generated_projects
+
+k8s/secret.yaml
