@@ -7,7 +7,7 @@ metadata:
     app: metamind
     component: backend
 spec:
-  replicas: 2
+  replicas: 1  # Single replica required for in-memory session storage (active_designs, generated_projects)
   selector:
     matchLabels:
       app: metamind

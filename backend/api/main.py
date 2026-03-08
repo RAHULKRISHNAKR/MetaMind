@@ -882,6 +882,7 @@ class CodeGenerationRequest(BaseModel):
 class CodeGenerationResponse(BaseModel):
     """Response model for code generation."""
     status: str
+    project_id: str
     project_path: str
     files_generated: List[str]
     architecture_type: str
@@ -957,6 +958,7 @@ async def generate_code(
         
         return CodeGenerationResponse(
             status="success",
+            project_id=project_id,
             project_path=str(project_path),
             files_generated=generation_result["files_generated"],
             architecture_type=generation_result["architecture_type"],
