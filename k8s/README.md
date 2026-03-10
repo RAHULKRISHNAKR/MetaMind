@@ -1,621 +1,434 @@
-# 🚀 MetaMind Kubernetes Deployment Guide
+# ☸️ MetaMind Kubernetes Deployment
 
-This guide will help you deploy MetaMind to Kubernetes step by step, even if you're a complete beginner.
-
-## 📋 Table of Contents
-
-1. [Prerequisites](#prerequisites)
-2. [Quick Start](#quick-start)
-3. [Detailed Setup](#detailed-setup)
-4. [Accessing the Application](#accessing-the-application)
-5. [Troubleshooting](#troubleshooting)
-6. [Production Deployment](#production-deployment)
-7. [Useful Commands](#useful-commands)
+Complete guide for deploying MetaMind to Kubernetes.
 
 ---
 
-## 🎯 Prerequisites
+## 🚀 Quick Start (5 Minutes)
 
-Before you begin, you need to install the following tools:
+### Prerequisites
+- Kubernetes cluster (Minikube, Docker Desktop, or cloud provider)
+- kubectl installed and configured
+- Docker for building images
+- Groq API key from [console.groq.com](https://console.groq.com/)
 
-### 1. Docker
-Docker is used to build container images.
+### Deploy Now
 
-**Installation:**
-- **macOS**: Download [Docker Desktop](https://www.docker.com/products/docker-desktop)
-- **Windows**: Download [Docker Desktop](https://www.docker.com/products/docker-desktop)
-- **Linux**: Follow [official guide](https://docs.docker.com/engine/install/)
-
-**Verify installation:**
 ```bash
-docker --version
+# 1. Configure your API key
+cd k8s
+nano secret.yaml
+# Replace 'your-groq-api-key-here' with your actual key
+
+# 2. Deploy everything
+./deploy.sh
+
+# 3. Access the application
+kubectl port-forward -n metamind svc/metamind-frontend-react 8080:80
+# Visit: http://localhost:8080
 ```
 
-### 2. Kubernetes Cluster
+That's it! MetaMind is now running on Kubernetes. 🎉
 
-You need a Kubernetes cluster. For beginners, we recommend **Minikube** for local testing.
+---
 
-#### Option A: Minikube (Recommended for Beginners)
+## 📖 Detailed Guide
 
-**Installation:**
-- **macOS**: `brew install minikube`
-- **Windows**: Download from [Minikube releases](https://minikube.sigs.k8s.io/docs/start/)
-- **Linux**: 
-  ```bash
-  curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-  sudo install minikube-linux-amd64 /usr/local/bin/minikube
-  ```
+### Step 1: Prepare Your Cluster
 
-**Start Minikube:**
+**Option A: Minikube (Local Testing)**
 ```bash
-minikube start --cpus=4 --memory=8192
-```
+# Start Minikube with sufficient resources
+minikube start --cpus=4 --memory=8192 --disk-size=20g
 
-**Verify:**
-```bash
-minikube status
-```
+# Enable ingress addon (optional)
+minikube addons enable ingress
 
-#### Option B: Docker Desktop Kubernetes
-
-If you have Docker Desktop, you can enable Kubernetes:
-1. Open Docker Desktop
-2. Go to Settings → Kubernetes
-3. Check "Enable Kubernetes"
-4. Click "Apply & Restart"
-
-#### Option C: Cloud Providers (Production)
-
-- **Google Cloud (GKE)**: [Setup Guide](https://cloud.google.com/kubernetes-engine/docs/quickstart)
-- **AWS (EKS)**: [Setup Guide](https://docs.aws.amazon.com/eks/latest/userguide/getting-started.html)
-- **Azure (AKS)**: [Setup Guide](https://docs.microsoft.com/en-us/azure/aks/kubernetes-walkthrough)
-
-### 3. kubectl
-
-kubectl is the Kubernetes command-line tool.
-
-**Installation:**
-- **macOS**: `brew install kubectl`
-- **Windows**: Download from [Kubernetes releases](https://kubernetes.io/docs/tasks/tools/install-kubectl-windows/)
-- **Linux**: 
-  ```bash
-  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-  sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-  ```
-
-**Verify:**
-```bash
-kubectl version --client
+# Verify cluster
 kubectl cluster-info
 ```
 
-### 4. API Keys
-
-You need an API key from one of these LLM providers:
-- **Groq** (Recommended - Free tier): [Get API Key](https://console.groq.com/)
-- **xAI Grok**: [Get API Key](https://console.x.ai/)
-- **OpenAI**: [Get API Key](https://platform.openai.com/)
-
----
-
-## 🚀 Quick Start
-
-### Step 1: Configure API Keys
-
-Edit the secret file with your API key:
-
+**Option B: Docker Desktop (Local Testing)**
 ```bash
-# Open the secret file
-nano k8s/secret.yaml
-
-# Replace 'your-groq-api-key-here' with your actual API key
-# Save and exit (Ctrl+X, then Y, then Enter)
+# Enable Kubernetes in Docker Desktop settings
+# Verify
+kubectl get nodes
 ```
 
-### Step 2: Run the Deployment Script
+**Option C: Cloud Provider (Production)**
+```bash
+# AWS EKS
+eksctl create cluster --name metamind --region us-west-2
 
+# GCP GKE
+gcloud container clusters create metamind --zone us-central1-a
+
+# Azure AKS
+az aks create --resource-group metamind-rg --name metamind
+```
+
+### Step 2: Configure Secrets
+
+Edit `secret.yaml` and add your API key:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: metamind-secrets
+  namespace: metamind
+type: Opaque
+stringData:
+  GROQ_API_KEY: "your_actual_groq_api_key_here"  # Replace this!
+```
+
+### Step 3: Build Docker Images
+
+**For Minikube** (use local images):
+```bash
+# Use Minikube's Docker daemon
+eval $(minikube docker-env)
+
+# Build images
+docker build -t metamind-backend:latest -f ../Dockerfile.backend ..
+docker build -t metamind-frontend-react:latest -f ../Dockerfile.frontend ..
+```
+
+**For Cloud** (push to registry):
+```bash
+# Tag images
+docker tag metamind-backend:latest your-registry/metamind-backend:latest
+docker tag metamind-frontend-react:latest your-registry/metamind-frontend-react:latest
+
+# Push to registry
+docker push your-registry/metamind-backend:latest
+docker push your-registry/metamind-frontend-react:latest
+
+# Update image references in deployment files
+```
+
+### Step 4: Deploy to Kubernetes
+
+**Automated Deployment** (Recommended):
 ```bash
 cd k8s
 ./deploy.sh
 ```
 
-The script will:
-1. ✅ Check prerequisites
-2. 🏗️ Build Docker images
-3. 🔐 Create secrets and config
-4. 📦 Deploy all services
-5. ⏳ Wait for everything to be ready
-6. 📊 Show you how to access the app
-
-### Step 3: Access the Application
-
-After deployment, use port forwarding to access the app:
-
+**Manual Deployment**:
 ```bash
-# Access React Frontend (Main UI)
-kubectl port-forward -n metamind svc/metamind-frontend-react 8080:80
+# Create namespace
+kubectl apply -f namespace.yaml
+
+# Create ConfigMap and Secrets
+kubectl apply -f configmap.yaml
+kubectl apply -f secret.yaml
+
+# Create PersistentVolume
+kubectl apply -f persistentvolume.yaml
+
+# Deploy services
+kubectl apply -f backend-deployment.yaml
+kubectl apply -f frontend-react-deployment.yaml
+kubectl apply -f services.yaml
+
+# Optional: Deploy ingress
+kubectl apply -f ingress.yaml
 ```
 
-Then open your browser to: **http://localhost:8080**
-
----
-
-## 📖 Detailed Setup
-
-If you prefer to deploy manually or want to understand each step:
-
-### Step 1: Build Docker Images
-
-```bash
-# Navigate to project root
-cd /path/to/MetaMind
-
-# Build backend image
-docker build -t metamind-backend:latest -f Dockerfile.backend .
-
-# Build React frontend image
-docker build -t metamind-frontend-react:latest -f frontend-react/Dockerfile ./frontend-react
-
-# Build Streamlit frontend image
-docker build -t metamind-frontend-streamlit:latest -f Dockerfile.frontend .
-
-# Verify images
-docker images | grep metamind
-```
-
-### Step 2: Configure for Minikube (if using Minikube)
-
-If you're using Minikube, you need to load images into Minikube:
-
-```bash
-# Use Minikube's Docker daemon
-eval $(minikube docker-env)
-
-# Rebuild images in Minikube's Docker
-docker build -t metamind-backend:latest -f Dockerfile.backend .
-docker build -t metamind-frontend-react:latest -f frontend-react/Dockerfile ./frontend-react
-docker build -t metamind-frontend-streamlit:latest -f Dockerfile.frontend .
-```
-
-### Step 3: Create Namespace
-
-```bash
-kubectl apply -f k8s/namespace.yaml
-```
-
-### Step 4: Configure Secrets
-
-Edit the secret file:
-```bash
-nano k8s/secret.yaml
-```
-
-Replace `your-groq-api-key-here` with your actual API key, then apply:
-```bash
-kubectl apply -f k8s/secret.yaml
-```
-
-### Step 5: Create ConfigMap
-
-```bash
-kubectl apply -f k8s/configmap.yaml
-```
-
-### Step 6: Create Storage
-
-```bash
-kubectl apply -f k8s/persistentvolume.yaml
-```
-
-### Step 7: Deploy Applications
-
-```bash
-# Deploy backend
-kubectl apply -f k8s/backend-deployment.yaml
-
-# Deploy React frontend
-kubectl apply -f k8s/frontend-react-deployment.yaml
-
-# Deploy Streamlit frontend
-kubectl apply -f k8s/frontend-streamlit-deployment.yaml
-```
-
-### Step 8: Create Services
-
-```bash
-kubectl apply -f k8s/services.yaml
-```
-
-### Step 9: Create Ingress (Optional)
-
-First, install NGINX Ingress Controller:
-
-**For Minikube:**
-```bash
-minikube addons enable ingress
-```
-
-**For other clusters:**
-```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.1/deploy/static/provider/cloud/deploy.yaml
-```
-
-Then create the ingress:
-```bash
-kubectl apply -f k8s/ingress.yaml
-```
-
-### Step 10: Verify Deployment
+### Step 5: Verify Deployment
 
 ```bash
 # Check all resources
 kubectl get all -n metamind
 
 # Check pod status
-kubectl get pods -n metamind
-
-# Check services
-kubectl get svc -n metamind
+kubectl get pods -n metamind -w
 
 # View logs
-kubectl logs -n metamind -l app=metamind --tail=50
+kubectl logs -n metamind -l app=metamind --tail=50 -f
+
+# Check health
+kubectl port-forward -n metamind svc/metamind-backend 8000:8000
+curl http://localhost:8000/health
 ```
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              Namespace: metamind                         │
+│                                                          │
+│  ┌──────────────┐  ┌──────────────┐                    │
+│  │   Backend    │  │ Frontend     │                    │
+│  │   (FastAPI)  │  │ (React)      │                    │
+│  │   2 replicas │  │ 2 replicas   │                    │
+│  └──────┬───────┘  └──────┬───────┘                    │
+│         │                  │                             │
+│         └──────────┬───────┘                             │
+│                    │                                     │
+│         ┌──────────▼───────────┐                        │
+│         │   Services (ClusterIP)│                       │
+│         └──────────┬────────────┘                       │
+│                    │                                     │
+│         ┌──────────▼────────────┐                       │
+│         │   Ingress (nginx)     │                       │
+│         └──────────┬────────────┘                       │
+│                    │                                     │
+│  ┌─────────────────▼──────────────────┐                │
+│  │   PersistentVolume (Database)      │                │
+│  └────────────────────────────────────┘                │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 📦 Components
+
+### Backend Service
+- **Image**: `metamind-backend:latest`
+- **Replicas**: 2
+- **Port**: 8000
+- **Resources**: 512Mi-2Gi RAM, 250m-1000m CPU
+- **Health Checks**: Liveness and readiness probes
+- **Storage**: PersistentVolume for SQLite database
+
+### Frontend React Service
+- **Image**: `metamind-frontend-react:latest`
+- **Replicas**: 2
+- **Port**: 80
+- **Resources**: 128Mi-256Mi RAM, 100m-200m CPU
+- **Server**: Nginx
+
+### Configuration
+- **ConfigMap**: Environment variables
+- **Secret**: API keys
+- **PersistentVolume**: 5Gi storage for database
 
 ---
 
 ## 🌐 Accessing the Application
 
-### Method 1: Port Forwarding (Easiest)
+### Method 1: Port Forwarding (Development)
 
-**React Frontend (Main UI):**
 ```bash
+# Forward frontend
 kubectl port-forward -n metamind svc/metamind-frontend-react 8080:80
-```
-Visit: http://localhost:8080
 
-**Backend API:**
-```bash
-kubectl port-forward -n metamind svc/metamind-backend 8000:8000
-```
-Visit: http://localhost:8000/docs
-
-**Streamlit UI:**
-```bash
-kubectl port-forward -n metamind svc/metamind-frontend-streamlit 8501:8501
-```
-Visit: http://localhost:8501
-
-### Method 2: Using Ingress
-
-If you configured Ingress:
-
-**For Minikube:**
-```bash
-# Get Minikube IP
-minikube ip
-
-# Add to /etc/hosts (Linux/Mac) or C:\Windows\System32\drivers\etc\hosts (Windows)
-<MINIKUBE_IP> metamind.local
+# Access at: http://localhost:8080
 ```
 
-Then visit:
-- Main UI: http://metamind.local
-- API: http://metamind.local/api
-- Streamlit: http://metamind.local/streamlit
+### Method 2: Ingress (Production)
 
-**For Cloud Providers:**
+1. **Install Ingress Controller**:
 ```bash
-# Get Ingress IP
+# Nginx Ingress
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.1/deploy/static/provider/cloud/deploy.yaml
+```
+
+2. **Apply Ingress**:
+```bash
+kubectl apply -f ingress.yaml
+```
+
+3. **Get Ingress IP**:
+```bash
 kubectl get ingress -n metamind
+```
 
-# Add to your DNS or /etc/hosts
-<INGRESS_IP> metamind.local
+4. **Configure DNS**:
+```
+metamind.yourdomain.com → <INGRESS_IP>
 ```
 
 ### Method 3: NodePort (Alternative)
 
-Edit `k8s/services.yaml` and change service type to `NodePort`:
-
+Edit `services.yaml` to use NodePort:
 ```yaml
 spec:
-  type: NodePort  # Change from ClusterIP
+  type: NodePort
+  ports:
+    - port: 80
+      nodePort: 30080
 ```
 
-Then apply and get the port:
-```bash
-kubectl apply -f k8s/services.yaml
-kubectl get svc -n metamind
-```
-
-**For Minikube:**
-```bash
-minikube service metamind-frontend-react -n metamind
-```
+Access at: `http://<NODE_IP>:30080`
 
 ---
 
-## 🔧 Troubleshooting
+## 🔧 Management
 
-### Pods Not Starting
-
-Check pod status:
-```bash
-kubectl get pods -n metamind
-kubectl describe pod <pod-name> -n metamind
-```
-
-Common issues:
-- **ImagePullBackOff**: Images not available. Rebuild or check image names.
-- **CrashLoopBackOff**: Check logs with `kubectl logs <pod-name> -n metamind`
-- **Pending**: Check if PersistentVolume is bound
-
-### Cannot Access Application
-
-1. Check if pods are running:
-   ```bash
-   kubectl get pods -n metamind
-   ```
-
-2. Check if services are created:
-   ```bash
-   kubectl get svc -n metamind
-   ```
-
-3. Test backend health:
-   ```bash
-   kubectl port-forward -n metamind svc/metamind-backend 8000:8000
-   curl http://localhost:8000/health
-   ```
-
-### API Key Issues
-
-If you see authentication errors:
-1. Verify secret is created:
-   ```bash
-   kubectl get secret metamind-secrets -n metamind
-   ```
-
-2. Check if API key is correct:
-   ```bash
-   kubectl get secret metamind-secrets -n metamind -o yaml
-   ```
-
-3. Update the secret:
-   ```bash
-   kubectl delete secret metamind-secrets -n metamind
-   kubectl apply -f k8s/secret.yaml
-   kubectl rollout restart deployment -n metamind
-   ```
-
-### Database Issues
-
-Check PersistentVolume:
-```bash
-kubectl get pv
-kubectl get pvc -n metamind
-```
-
-If PVC is pending, you may need to create the directory:
-```bash
-# For Minikube
-minikube ssh
-sudo mkdir -p /mnt/data/metamind
-exit
-```
-
-### View Logs
+### Scaling
 
 ```bash
-# All pods
-kubectl logs -n metamind -l app=metamind --tail=100 -f
+# Scale backend
+kubectl scale deployment metamind-backend --replicas=5 -n metamind
 
-# Specific pod
-kubectl logs -n metamind <pod-name> -f
+# Scale frontend
+kubectl scale deployment metamind-frontend-react --replicas=3 -n metamind
 
-# Previous crashed pod
-kubectl logs -n metamind <pod-name> --previous
+# Auto-scaling
+kubectl autoscale deployment metamind-backend \
+  --cpu-percent=70 \
+  --min=2 \
+  --max=10 \
+  -n metamind
 ```
 
----
-
-## 🏭 Production Deployment
-
-### 1. Use Production-Grade Storage
-
-Replace `hostPath` with cloud storage:
-
-**AWS EBS:**
-```yaml
-storageClassName: gp2
-```
-
-**GCP Persistent Disk:**
-```yaml
-storageClassName: standard
-```
-
-**Azure Disk:**
-```yaml
-storageClassName: managed-premium
-```
-
-### 2. Configure Resource Limits
-
-Already configured in deployment files. Adjust based on your needs:
-```yaml
-resources:
-  requests:
-    memory: "512Mi"
-    cpu: "250m"
-  limits:
-    memory: "2Gi"
-    cpu: "1000m"
-```
-
-### 3. Enable HTTPS
-
-Update ingress with TLS:
-```yaml
-spec:
-  tls:
-  - hosts:
-    - metamind.yourdomain.com
-    secretName: metamind-tls
-```
-
-Install cert-manager for automatic SSL:
-```bash
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
-```
-
-### 4. Set Up Monitoring
-
-Install Prometheus and Grafana:
-```bash
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm install prometheus prometheus-community/kube-prometheus-stack -n monitoring --create-namespace
-```
-
-### 5. Configure Autoscaling
-
-Create HorizontalPodAutoscaler:
-```yaml
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: metamind-backend-hpa
-  namespace: metamind
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: metamind-backend
-  minReplicas: 2
-  maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-```
-
-### 6. Backup Strategy
-
-Set up regular backups of the database:
-```bash
-# Create backup job
-kubectl create job --from=cronjob/metamind-backup backup-$(date +%Y%m%d) -n metamind
-```
-
----
-
-## 📝 Useful Commands
-
-### Deployment Management
+### Updates
 
 ```bash
-# View all resources
-kubectl get all -n metamind
-
-# Scale deployment
-kubectl scale deployment metamind-backend --replicas=3 -n metamind
-
-# Restart deployment
-kubectl rollout restart deployment metamind-backend -n metamind
+# Update image
+kubectl set image deployment/metamind-backend \
+  backend=metamind-backend:v2 -n metamind
 
 # Check rollout status
-kubectl rollout status deployment metamind-backend -n metamind
+kubectl rollout status deployment/metamind-backend -n metamind
 
-# Rollback deployment
-kubectl rollout undo deployment metamind-backend -n metamind
+# Rollback if needed
+kubectl rollout undo deployment/metamind-backend -n metamind
 ```
 
-### Debugging
+### Monitoring
 
 ```bash
-# Get pod details
-kubectl describe pod <pod-name> -n metamind
-
-# Execute command in pod
-kubectl exec -it <pod-name> -n metamind -- /bin/bash
-
 # View logs
-kubectl logs <pod-name> -n metamind -f
+kubectl logs -n metamind -l app=metamind --tail=100 -f
 
-# View events
-kubectl get events -n metamind --sort-by='.lastTimestamp'
-```
-
-### Resource Management
-
-```bash
-# View resource usage
+# Check resource usage
 kubectl top pods -n metamind
 kubectl top nodes
 
-# View resource quotas
-kubectl describe resourcequota -n metamind
+# Get events
+kubectl get events -n metamind --sort-by='.lastTimestamp'
 ```
 
-### Cleanup
+---
+
+## 🔐 Security
+
+### Network Policies
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: metamind-network-policy
+  namespace: metamind
+spec:
+  podSelector:
+    matchLabels:
+      app: metamind
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: metamind
+```
+
+### RBAC
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: metamind-role
+  namespace: metamind
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services"]
+  verbs: ["get", "list", "watch"]
+```
+
+---
+
+## 💾 Backup and Recovery
+
+### Backup Database
 
 ```bash
-# Delete specific deployment
-kubectl delete deployment metamind-backend -n metamind
+# Backup
+kubectl exec -n metamind deployment/metamind-backend -- \
+  sqlite3 /app/data/metamind.db .dump > backup.sql
 
-# Delete all resources in namespace
+# Restore
+kubectl exec -i -n metamind deployment/metamind-backend -- \
+  sqlite3 /app/data/metamind.db < backup.sql
+```
+
+### Automated Backups
+
+Create a CronJob for daily backups (see `backup-cronjob.yaml` example in docs).
+
+---
+
+## 🧹 Cleanup
+
+```bash
+# Delete everything
 kubectl delete namespace metamind
 
-# Delete everything (including namespace)
-kubectl delete -f k8s/
+# Or delete individually
+kubectl delete -f .
+
+# Stop Minikube
+minikube stop
+minikube delete
 ```
 
 ---
 
-## 🎓 Learning Resources
+## 🐛 Troubleshooting
 
-- [Kubernetes Basics](https://kubernetes.io/docs/tutorials/kubernetes-basics/)
-- [kubectl Cheat Sheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
-- [Kubernetes Best Practices](https://kubernetes.io/docs/concepts/configuration/overview/)
-- [Docker Documentation](https://docs.docker.com/)
+### Pods Not Starting
 
----
+```bash
+# Check pod status
+kubectl get pods -n metamind
 
-## 🆘 Getting Help
+# View logs
+kubectl logs -n metamind <pod-name>
 
-If you encounter issues:
-
-1. Check the [Troubleshooting](#troubleshooting) section
-2. View logs: `kubectl logs -n metamind -l app=metamind --tail=100`
-3. Check pod status: `kubectl get pods -n metamind`
-4. Open an issue on GitHub with:
-   - Error messages
-   - Pod status output
-   - Relevant logs
-
----
-
-## 📄 File Structure
-
-```
-k8s/
-├── README.md                          # This file
-├── deploy.sh                          # Automated deployment script
-├── namespace.yaml                     # Namespace definition
-├── configmap.yaml                     # Configuration values
-├── secret.yaml                        # API keys (edit before deploying)
-├── persistentvolume.yaml              # Storage configuration
-├── backend-deployment.yaml            # Backend deployment
-├── frontend-react-deployment.yaml     # React frontend deployment
-├── frontend-streamlit-deployment.yaml # Streamlit frontend deployment
-├── services.yaml                      # Service definitions
-└── ingress.yaml                       # Ingress configuration
+# Describe pod
+kubectl describe pod -n metamind <pod-name>
 ```
 
+### Common Issues
+
+1. **ImagePullBackOff**: Build images locally for Minikube
+2. **CrashLoopBackOff**: Check logs for errors
+3. **Pending**: Check resource availability
+4. **Connection Refused**: Verify services and ports
+
+See [Troubleshooting Guide](../docs/TROUBLESHOOTING.md) for more details.
+
 ---
 
-**🎉 Congratulations!** You've successfully deployed MetaMind to Kubernetes!
+## 📚 Additional Resources
 
-For questions or issues, please open an issue on GitHub.
+- [Main Documentation](../README.md)
+- [Deployment Guide](../docs/DEPLOYMENT.md)
+- [Troubleshooting Guide](../docs/TROUBLESHOOTING.md)
+- [Kubernetes Documentation](https://kubernetes.io/docs/)
+
+---
+
+## 📝 Files in this Directory
+
+- `namespace.yaml` - Namespace definition
+- `configmap.yaml` - Configuration values
+- `secret.yaml` - API keys and secrets
+- `persistentvolume.yaml` - Storage configuration
+- `backend-deployment.yaml` - Backend service
+- `frontend-react-deployment.yaml` - React UI
+- `services.yaml` - Service definitions
+- `ingress.yaml` - Ingress configuration
+- `deploy.sh` - Automated deployment script
+
+---
+
+**MetaMind is ready for Kubernetes!** ☸️
